@@ -2,6 +2,7 @@
 
 ---- test srlua
 local print_r = require('print_r')
+print('print_r',print_r)
 --print('Package before load')
 --print_r(package)
 local zip = require('brimworks.zip')
@@ -19,9 +20,9 @@ print_r(zip)
 --  print(i,arg[i])
 --end
 
-if #arg < 1 then
-    return
-end
+--if #arg < 1 then
+--    return
+--end
 
 local z = zip.open('test2.zip')
 local last_file_idx = #z

@@ -16,7 +16,7 @@ G=-g
 
 # probably no need to change anything below here
 CC= gcc
-CFLAGS= $(INCS) $(WARN) -O2 $G
+CFLAGS= $(INCS) $(WARN) -O2 $G -std=c11
 WARN= -ansi -pedantic -Wall -Wextra
 INCS= -I$(LUAINC)
 OBJS= srlua.o
@@ -44,7 +44,17 @@ $S:	$(OBJS) Makefile
 $(GLUE):	glue.c Makefile
 	$(CC) -o $@ $(CFLAGS) $< $(EXPORT) $(LIBS)
 
+srlua.o: srlua.c print_r.h
+	$(CC) -c $< $(CFLAGS) -o $@
+
+# Convert Lua source to a C string literal we can statically compile.
+# It is important to preserve the line breaks, since otherwise the first `--`
+# comment will wipe out the rest of the file.
+print_r.h: print_r.in.lua Makefile
+	awk -- 'BEGIN { print "static char *PRINT_R = " } { gsub(/"/, "\\\""); print "\"" $$0 "\\n\""} END { print ";" }' $< > $@
+
+
 clean:
-	rm -f $(OBJS) $T $S core core.* a.out *.o $(GLUE)
+	rm -f $(OBJS) $T $S core core.* a.out *.o $(GLUE) print_r.h
 
 # eof

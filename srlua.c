@@ -42,8 +42,25 @@
 #include "lualib.h"
 #include "lauxlib.h"
 
+/*************************************************************************/
 /* statically-linked lua-zip */
 LUALIB_API int luaopen_brimworks_zip(lua_State* L);
+
+/* statically-linked print_r */
+#include "print_r.h"
+
+LUALIB_API int luaopen_print_r(lua_State* L)
+{
+ if(luaL_loadstring(L, PRINT_R) != LUA_OK) {
+  return luaL_error(L, "Cannot load embedded print_r");
+ }
+ if(lua_pcall(L, 0, 1, 0) != LUA_OK) {
+  return luaL_error(L, "Cannot evaluate embedded print_r");
+ }
+ return 1;
+} //luaopen_print_r
+
+/*************************************************************************/
 
 typedef struct
 {
@@ -104,7 +121,11 @@ static int pmain(lua_State *L)
  /* Set up Lua to call luaopen_brimworks_zip() to get the package for
     brimworks.zip.  Thanks for the Lua 5.3 illustration to
     https://github.com/philanc/slua/blob/master/src/lua/linit.c */
- luaL_requiref(L, "brimworks.zip", luaopen_brimworks_zip, 1);
+ luaL_requiref(L, "brimworks.zip", luaopen_brimworks_zip, 0);
+ lua_pop(L,1);	/* don't leave a copy of the module on the stack*/
+
+ /* Tell Lua about embedded print_r */
+ luaL_requiref(L, "print_r", luaopen_print_r, 0);
  lua_pop(L,1);	/* don't leave a copy of the module on the stack*/
 
  load(L,argv[0]);

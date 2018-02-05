@@ -1,3 +1,6 @@
+# Intermediate or generated files
+print_r.h
+
 # Backup files and output files
 *.swp
 *~
