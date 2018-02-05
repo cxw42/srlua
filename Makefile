@@ -6,6 +6,8 @@ LUAINC= $(LUA)/include
 LUALIB= $(LUA)/lib
 LUABIN= $(LUA)/bin
 
+G=-g
+
 # these will probably work if Lua has been installed globally
 #LUA= /usr/local
 #LUAINC= $(LUA)/include
@@ -17,14 +19,14 @@ CC= gcc
 CFLAGS= $(INCS) $(WARN) -O2 $G
 WARN= -ansi -pedantic -Wall -Wextra
 INCS= -I$(LUAINC)
-LIBS= -L$(LUALIB) -llua -lm #-ldl
+OBJS= srlua.o
+LIBS= luazip.a -L$(LUALIB) -lzip -lz -llua -lm #-ldl
 EXPORT= -Wl,--export-all-symbols
 # for Mac OS X comment the previous line above or do 'make EXPORT='
 
 GLUE= glue.exe
 T= a.exe
 S= srlua.exe
-OBJS= srlua.o
 TEST= test.lua
 
 all:	test

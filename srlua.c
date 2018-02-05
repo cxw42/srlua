@@ -42,6 +42,9 @@
 #include "lualib.h"
 #include "lauxlib.h"
 
+/* statically-linked lua-zip */
+LUALIB_API int luaopen_brimworks_zip(lua_State* L);
+
 typedef struct
 {
  FILE *f;
@@ -76,7 +79,7 @@ static void load(lua_State *L, const char *name)
  if (fseek(f,t.size1,SEEK_SET)!=0) cannot("seek");
  S.f=f; S.size=t.size2;
  c=getc(f);
- if (c=='#')
+ if (c=='#')	/* skip shebang line */
   while (--S.size>0 && c!='\n') c=getc(f);
  else
   ungetc(c,f);
@@ -93,9 +96,17 @@ static int pmain(lua_State *L)
  int argc=lua_tointeger(L,1);
  char** argv=lua_touserdata(L,2);
  int i;
+
  lua_gc(L,LUA_GCSTOP,0);
  luaL_openlibs(L);
  lua_gc(L,LUA_GCRESTART,0);
+
+ /* Set up Lua to call luaopen_brimworks_zip() to get the package for
+    brimworks.zip.  Thanks for the Lua 5.3 illustration to
+    https://github.com/philanc/slua/blob/master/src/lua/linit.c */
+ luaL_requiref(L, "brimworks.zip", luaopen_brimworks_zip, 1);
+ lua_pop(L,1);	/* don't leave a copy of the module on the stack*/
+
  load(L,argv[0]);
  lua_createtable(L,argc,0);
  for (i=0; i<argc; i++)
@@ -115,11 +126,11 @@ static int pmain(lua_State *L)
 
 static void fatal(const char* progname, const char* message)
 {
-#ifdef _WIN32
- MessageBox(NULL,message,progname,MB_ICONERROR | MB_OK);
-#else
+/*#ifdef _WIN32*/
+/* MessageBox(NULL,message,progname,MB_ICONERROR | MB_OK);*/
+/*#else*/
  fprintf(stderr,"%s: %s\n",progname,message);
-#endif
+/*#endif*/
  exit(EXIT_FAILURE);
 }
 
@@ -143,7 +154,7 @@ char* getprog() {
   char linkname[256];
   sprintf(linkname, "/proc/%d/path/a.out", pid);
   n = readlink(linkname, progdir, nsize);
-  if (n > 0) progdir[n] = 0;  
+  if (n > 0) progdir[n] = 0;
 #elif defined(__FreeBSD__)
   int mib[4];
   mib[0] = CTL_KERN;
@@ -186,7 +197,7 @@ int main(int argc, char *argv[])
 {
  lua_State *L;
  argv[0] = getprog();
- 
+
  if (argv[0]==NULL) fatal("srlua","cannot locate this executable");
  L=luaL_newstate();
  if (L==NULL) fatal(argv[0],"not enough memory for state");

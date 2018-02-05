@@ -24,3 +24,5 @@ core
 /*_history
 /tags
 
+# ZIPs, since I might use a lot of those in testing
+*.zip
