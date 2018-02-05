@@ -1,8 +1,12 @@
 #!/usr/local/bin/lua
 
+package.path=''
+package.cpath=''
 ---- test srlua
 local print_r = require('print_r')
 print('print_r',print_r)
+print('package.path',package.path)
+print('package.cpath',package.cpath)
 --print('Package before load')
 --print_r(package)
 local zip = require('brimworks.zip')

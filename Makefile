@@ -31,8 +31,10 @@ TEST= test.lua
 
 all:	test
 
+# Empty the LUA_PATH and LUA_CPATH before testing so that we don't
+# accidentally pull any modules we haven't expressly bundled in.
 test:	$T
-	./$T *
+	export LUA_PATH= ; export LUA_CPATH= ; ./$T *
 
 $T:	$S $(TEST) $(GLUE) Makefile
 	./$(GLUE) $S $(TEST) $T
