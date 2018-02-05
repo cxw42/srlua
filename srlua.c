@@ -6,7 +6,8 @@
 * This code is hereby placed in the public domain.
 */
 
-#if defined(_WIN32)
+#if defined(_WIN32) || defined(__MINGW32__)
+  #define WIN32_LEAN_AND_MEAN
   #include <windows.h>
   #define _PATH_MAX MAX_PATH
 #else
