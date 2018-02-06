@@ -50,7 +50,7 @@ LUALIB_API int luaopen_brimworks_zip(lua_State* L);
 LUALIB_API int luaopen_lfs(lua_State* L);
 
 // statically-linked Lua source
-#include "print_r.h"
+#include "gen/print_r.h"
 
 /// The source of the module to be loaded by luaopen_Module_source().
 /// A hack since luaL_requiref doesn't provide a void* that goes to the

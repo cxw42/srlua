@@ -2,19 +2,30 @@
 
 # change these to reflect your Lua installation
 LUA= /mingw
+LUA_VER= 5.3
 LUAINC= $(LUA)/include
 LUALIB= $(LUA)/lib
 LUABIN= $(LUA)/bin
+LUASHARE= $(LUA)/share/lua/$(LUA_VER)
 
 G=-g
 
-# these will probably work if Lua has been installed globally
-#LUA= /usr/local
-#LUAINC= $(LUA)/include
-#LUALIB= $(LUA)/lib
-#LUABIN= $(LUA)/bin
-
 # probably no need to change anything below here
+
+# Debugging, thanks to
+# https://www.cmcrossroads.com/article/tracing-rule-execution-gnu-make
+#OLD_SHELL := $(SHELL)
+#SHELL = $(warning Building $@)$(OLD_SHELL)
+
+.PHONY: all test regen
+all:	regen test
+
+# Make sure our intermediate directory exists, unless we're running clean
+regen:
+ifeq (,$(filter clean clean-%,$(MAKECMDGOALS)))
+	mkdir -p gen
+endif
+
 CC= gcc
 CFLAGS= $(INCS) $(WARN) -O2 $G -std=c11 -U__STRICT_ANSI__
 	# -U__STRICT_ANSI__ is to expose the definition of _fileno().
@@ -22,7 +33,6 @@ CFLAGS= $(INCS) $(WARN) -O2 $G -std=c11 -U__STRICT_ANSI__
 	# https://stackoverflow.com/users/1250772/kaz
 WARN= -ansi -pedantic -Wall -Wextra
 INCS= -I$(LUAINC)
-GENERATED_INCS= print_r.h
 OBJS= srlua.o lfs.o
 LIBS= luazip.a -L$(LUALIB) -lzip -lz -llua -lm #-ldl
 EXPORT= -Wl,--export-all-symbols
@@ -32,8 +42,6 @@ GLUE= glue.exe
 T= a.exe
 S= srlua.exe
 TEST= test.lua
-
-all:	test
 
 # Empty the LUA_PATH and LUA_CPATH before testing so that we don't
 # accidentally pull any modules we haven't expressly bundled in.
@@ -50,7 +58,7 @@ $S:	$(OBJS) Makefile
 $(GLUE):	glue.c Makefile
 	$(CC) -o $@ $(CFLAGS) $< $(EXPORT) $(LIBS)
 
-srlua.o: srlua.c $(GENERATED_INCS)
+srlua.o: srlua.c
 	$(CC) -c $< $(CFLAGS) -o $@
 
 # Convert Lua source to a C string literal we can statically compile.
@@ -59,10 +67,44 @@ srlua.o: srlua.c $(GENERATED_INCS)
 # We also strip leading and trailing whitespace, and omit lines that are
 # entirely comments.  The `$0 !~ /^--[^\[\]]/` check is to (hopefully) not
 # blow away block comments.
-%.h: %.in.lua Makefile
-	gawk -- 'BEGIN { print "static char *PRINT_R = " } { sub(/^[[:space:]]+/,""); sub(/[[:space:]]+$$/,""); } ($$0 !~ /^--[^\[\]]/) && /./ { gsub(/"/, "\\\""); print "\"" $$0 "\\n\""} END { print ";" }' $< > $@
+
+# No default rule for lua->h
+#%.h: %.lua
+
+GEN_INC_RECIPE=gawk -- '"'"'BEGIN { print "static char *PRINT_R = " } { sub(/^[[:space:]]+/,""); sub(/[[:space:]]+$$$$/,""); } ($$$$0 !~ /^--[^\[\]]/) && /./ { gsub(/"/, "\\\""); print "\"" $$$$0 "\\n\""} END { print ";" }'"'"' $$< > $$@
+
+##$(GENERATED_INCS): %.h: %
+##	gawk -- 'BEGIN { print "static char *PRINT_R = " } { sub(/^[[:space:]]+/,""); sub(/[[:space:]]+$$/,""); } ($$0 !~ /^--[^\[\]]/) && /./ { gsub(/"/, "\\\""); print "\"" $$0 "\\n\""} END { print ";" }' $< > $@
+
+GEN_INC_FILE := gen/generated_incs.mk
+GENERATED_INCS=
 
 clean:
-	rm -f $(OBJS) $T $S core core.* a.out *.o $(GLUE) $(GENERATED_INCS)
+	rm -f $(OBJS) $T $S core core.* a.out *.o $(GLUE) $(GEN_INC_FILE) $(GENERATED_INCS)
+	-rmdir gen
+
+#######################################################################
+# Lua source-embedding support
+
+# TODO use a loop, or a filter on the output of `luarocks show`.
+# Don't make GEN_INC_FILE if we're running `make clean`
+# Thanks to http://make.mad-scientist.net/constructed-include-files/
+$(GEN_INC_FILE): Makefile regen
+ifeq (,$(filter clean clean-%,$(MAKECMDGOALS)))
+	@echo Building $@
+	@-rm -f $@
+	@echo 'GENERATED_INCS += gen/print_r.h' >> $@
+	@echo 'gen/print_r.h: $(LUASHARE)/print_r.lua Makefile' >> $@
+	@echo '	$(GEN_INC_RECIPE)' >> $@
+	@echo 'srlua.o: gen/print_r.h' >> $@
+	@echo >> $@
+	@echo 'GENERATED_INCS += gen/pl.h' >> $@
+	@echo 'gen/pl.h: $(LUASHARE)/pl/init.lua Makefile' >> $@
+	@echo '	$(GEN_INC_RECIPE)' >> $@
+	@echo 'srlua.o: gen/pl.h' >> $@
+	@echo >> $@
+endif
+
+-include $(GEN_INC_FILE)
 
 # eof
