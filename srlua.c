@@ -50,7 +50,7 @@ LUALIB_API int luaopen_brimworks_zip(lua_State* L);
 LUALIB_API int luaopen_lfs(lua_State* L);
 
 // statically-linked Lua source
-#include "gen/print_r.h"
+#include "gen/generated_incs.h"
 
 /// The source of the module to be loaded by luaopen_Module_source().
 /// A hack since luaL_requiref doesn't provide a void* that goes to the
@@ -153,7 +153,7 @@ static int pmain(lua_State *L)
  lua_pop(L,1);	// don't leave a copy of the module on the stack
 
  /* Tell Lua about embedded print_r */
- load_embedded_module(L, "print_r", PRINT_R);
+ load_embedded_module(L, "print_r", LSRC_PRINT_R);
 
  load(L,argv[0]);
  lua_createtable(L,argc,0);

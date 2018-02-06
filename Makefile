@@ -27,7 +27,7 @@ ifeq (,$(filter clean clean-%,$(MAKECMDGOALS)))
 endif
 
 CC= gcc
-CFLAGS= $(INCS) $(WARN) -O2 $G -std=c11 -U__STRICT_ANSI__
+CFLAGS= $(INCS) $(WARN) -O2 $G -std=c11 -U__STRICT_ANSI__ -Wno-overlength-strings
 	# -U__STRICT_ANSI__ is to expose the definition of _fileno().
 	# Thanks to https://stackoverflow.com/a/21035923/2877364 by
 	# https://stackoverflow.com/users/1250772/kaz
@@ -71,16 +71,17 @@ srlua.o: srlua.c
 # No default rule for lua->h
 #%.h: %.lua
 
-GEN_INC_RECIPE=gawk -- '"'"'BEGIN { print "static char *PRINT_R = " } { sub(/^[[:space:]]+/,""); sub(/[[:space:]]+$$$$/,""); } ($$$$0 !~ /^--[^\[\]]/) && /./ { gsub(/"/, "\\\""); print "\"" $$$$0 "\\n\""} END { print ";" }'"'"' $$< > $$@
 
 ##$(GENERATED_INCS): %.h: %
 ##	gawk -- 'BEGIN { print "static char *PRINT_R = " } { sub(/^[[:space:]]+/,""); sub(/[[:space:]]+$$/,""); } ($$0 !~ /^--[^\[\]]/) && /./ { gsub(/"/, "\\\""); print "\"" $$0 "\\n\""} END { print ";" }' $< > $@
 
 GEN_INC_FILE := gen/generated_incs.mk
+GEN_HDR := gen/generated_incs.h
 GENERATED_INCS=
 
 clean:
-	rm -f $(OBJS) $T $S core core.* a.out *.o $(GLUE) $(GEN_INC_FILE) $(GENERATED_INCS)
+	rm -f $(OBJS) $T $S core core.* a.out *.o $(GLUE) \
+		$(GEN_INC_FILE) $(GEN_HDR) $(GENERATED_INCS)
 	-rmdir gen
 
 #######################################################################
@@ -89,21 +90,15 @@ clean:
 # TODO use a loop, or a filter on the output of `luarocks show`.
 # Don't make GEN_INC_FILE if we're running `make clean`
 # Thanks to http://make.mad-scientist.net/constructed-include-files/
-$(GEN_INC_FILE): Makefile regen
+$(GEN_INC_FILE): Makefile gen-inc.sh source-libraries.txt
 ifeq (,$(filter clean clean-%,$(MAKECMDGOALS)))
-	@echo Building $@
-	@-rm -f $@
-	@echo 'GENERATED_INCS += gen/print_r.h' >> $@
-	@echo 'gen/print_r.h: $(LUASHARE)/print_r.lua Makefile' >> $@
-	@echo '	$(GEN_INC_RECIPE)' >> $@
-	@echo 'srlua.o: gen/print_r.h' >> $@
-	@echo >> $@
-	@echo 'GENERATED_INCS += gen/pl.h' >> $@
-	@echo 'gen/pl.h: $(LUASHARE)/pl/init.lua Makefile' >> $@
-	@echo '	$(GEN_INC_RECIPE)' >> $@
-	@echo 'srlua.o: gen/pl.h' >> $@
-	@echo >> $@
+	mkdir -p gen
+	@ # ^^ expressly, since a dependency on regen causes an infinite loop
+	./gen-inc.sh "$(GEN_INC_FILE)" source-libraries.txt "$(GEN_HDR)"
 endif
+
+# Making GEN_INC_FILE produces GEN_HDR as well
+$(GEN_HDR): $(GEN_INC_FILE) ;
 
 -include $(GEN_INC_FILE)
 
