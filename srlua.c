@@ -49,19 +49,41 @@ LUALIB_API int luaopen_brimworks_zip(lua_State* L);
 /* statically-linked luafilesystem */
 LUALIB_API int luaopen_lfs(lua_State* L);
 
-/* statically-linked print_r */
+// statically-linked Lua source
 #include "print_r.h"
 
-LUALIB_API int luaopen_print_r(lua_State* L)
+/// The source of the module to be loaded by luaopen_Module_source().
+/// A hack since luaL_requiref doesn't provide a void* that goes to the
+/// loader function.  Using a C global is simpler than using the Lua
+/// registry to pass the data.
+static const char *Module_source = NULL;
+
+/// Load the Lua source pointed to by Module_source
+LUALIB_API int luaopen_Module_source(lua_State* L)
 {
- if(luaL_loadstring(L, PRINT_R) != LUA_OK) {
-  return luaL_error(L, "Cannot load embedded print_r");
+ const char *module_name = lua_tostring(L, -1);
+ if(!Module_source || !*Module_source) {
+  return luaL_error(L, "No module source provided for module %s", module_name);
+ }
+ if(luaL_loadstring(L, Module_source) != LUA_OK) {
+  return luaL_error(L, "Cannot load embedded module %s", module_name);
  }
  if(lua_pcall(L, 0, 1, 0) != LUA_OK) {
-  return luaL_error(L, "Cannot evaluate embedded print_r");
+  return luaL_error(L, "Cannot evaluate embedded module %s", module_name);
  }
  return 1;
 } //luaopen_print_r
+
+/// Load embedded module #name, with source code #source.
+/// Returns on success; doesn't return on error.
+/// Call from within a Lua context.
+void load_embedded_module(lua_State *L, const char *name, const char *source)
+{
+ Module_source = source;
+ luaL_requiref(L, name, luaopen_Module_source, 0);
+ lua_pop(L,1);	/* don't leave a copy of the module on the stack*/
+ Module_source = NULL;
+} //load_embedded_module()
 
 /*************************************************************************/
 
@@ -131,8 +153,7 @@ static int pmain(lua_State *L)
  lua_pop(L,1);	// don't leave a copy of the module on the stack
 
  /* Tell Lua about embedded print_r */
- luaL_requiref(L, "print_r", luaopen_print_r, 0);
- lua_pop(L,1);	/* don't leave a copy of the module on the stack*/
+ load_embedded_module(L, "print_r", PRINT_R);
 
  load(L,argv[0]);
  lua_createtable(L,argc,0);

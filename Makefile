@@ -22,6 +22,7 @@ CFLAGS= $(INCS) $(WARN) -O2 $G -std=c11 -U__STRICT_ANSI__
 	# https://stackoverflow.com/users/1250772/kaz
 WARN= -ansi -pedantic -Wall -Wextra
 INCS= -I$(LUAINC)
+GENERATED_INCS= print_r.h
 OBJS= srlua.o lfs.o
 LIBS= luazip.a -L$(LUALIB) -lzip -lz -llua -lm #-ldl
 EXPORT= -Wl,--export-all-symbols
@@ -49,17 +50,19 @@ $S:	$(OBJS) Makefile
 $(GLUE):	glue.c Makefile
 	$(CC) -o $@ $(CFLAGS) $< $(EXPORT) $(LIBS)
 
-srlua.o: srlua.c print_r.h
+srlua.o: srlua.c $(GENERATED_INCS)
 	$(CC) -c $< $(CFLAGS) -o $@
 
 # Convert Lua source to a C string literal we can statically compile.
 # It is important to preserve the line breaks, since otherwise the first `--`
 # comment will wipe out the rest of the file.
-print_r.h: print_r.in.lua Makefile
-	awk -- 'BEGIN { print "static char *PRINT_R = " } { gsub(/"/, "\\\""); print "\"" $$0 "\\n\""} END { print ";" }' $< > $@
-
+# We also strip leading and trailing whitespace, and omit lines that are
+# entirely comments.  The `$0 !~ /^--[^\[\]]/` check is to (hopefully) not
+# blow away block comments.
+%.h: %.in.lua Makefile
+	gawk -- 'BEGIN { print "static char *PRINT_R = " } { sub(/^[[:space:]]+/,""); sub(/[[:space:]]+$$/,""); } ($$0 !~ /^--[^\[\]]/) && /./ { gsub(/"/, "\\\""); print "\"" $$0 "\\n\""} END { print ";" }' $< > $@
 
 clean:
-	rm -f $(OBJS) $T $S core core.* a.out *.o $(GLUE) print_r.h
+	rm -f $(OBJS) $T $S core core.* a.out *.o $(GLUE) $(GENERATED_INCS)
 
 # eof
