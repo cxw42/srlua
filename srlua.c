@@ -46,6 +46,9 @@
 /* statically-linked lua-zip */
 LUALIB_API int luaopen_brimworks_zip(lua_State* L);
 
+/* statically-linked luafilesystem */
+LUALIB_API int luaopen_lfs(lua_State* L);
+
 /* statically-linked print_r */
 #include "print_r.h"
 
@@ -123,6 +126,9 @@ static int pmain(lua_State *L)
     https://github.com/philanc/slua/blob/master/src/lua/linit.c */
  luaL_requiref(L, "brimworks.zip", luaopen_brimworks_zip, 0);
  lua_pop(L,1);	/* don't leave a copy of the module on the stack*/
+
+ luaL_requiref(L, "lfs", luaopen_lfs, 0);
+ lua_pop(L,1);	// don't leave a copy of the module on the stack
 
  /* Tell Lua about embedded print_r */
  luaL_requiref(L, "print_r", luaopen_print_r, 0);

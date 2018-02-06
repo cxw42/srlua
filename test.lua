@@ -40,6 +40,33 @@ end
 
 z:close()
 
+-- lfs example, from https://keplerproject.github.io/luafilesystem/examples.html
+local lfs = require 'lfs'
+
+function attrdir (path)
+    for file in lfs.dir(path) do
+        if file ~= "." and file ~= ".." then
+            local f = path..'/'..file
+            print ("\t "..f)
+
+            local attr = lfs.attributes (f)
+            assert (type(attr) == "table")
+            if attr.mode == "directory" then
+                attrdir (f)
+            else
+                --[[
+                for name, value in pairs(attr) do
+                    print (name, value)
+                end
+                --]]
+            end
+        end
+    end
+end
+
+attrdir "."
+
+
 print"bye now!"
 
 -- vi: set ts=4 sts=4 sw=4 et ai: --

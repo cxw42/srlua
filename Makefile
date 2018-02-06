@@ -1,4 +1,4 @@
-# makefile for srlua
+# makefile for srlua, modified by cxw
 
 # change these to reflect your Lua installation
 LUA= /mingw
@@ -16,10 +16,13 @@ G=-g
 
 # probably no need to change anything below here
 CC= gcc
-CFLAGS= $(INCS) $(WARN) -O2 $G -std=c11
+CFLAGS= $(INCS) $(WARN) -O2 $G -std=c11 -U__STRICT_ANSI__
+	# -U__STRICT_ANSI__ is to expose the definition of _fileno().
+	# Thanks to https://stackoverflow.com/a/21035923/2877364 by
+	# https://stackoverflow.com/users/1250772/kaz
 WARN= -ansi -pedantic -Wall -Wextra
 INCS= -I$(LUAINC)
-OBJS= srlua.o
+OBJS= srlua.o lfs.o
 LIBS= luazip.a -L$(LUALIB) -lzip -lz -llua -lm #-ldl
 EXPORT= -Wl,--export-all-symbols
 # for Mac OS X comment the previous line above or do 'make EXPORT='
