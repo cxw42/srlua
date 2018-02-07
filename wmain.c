@@ -1,16 +1,18 @@
 #include <windows.h>
 #include <stdlib.h> /* declaration of __argc and __argv */
 
-extern int main(int, char **);
+extern int srlua_main(int, char **);
 
-int PASCAL WinMain(HINSTANCE hinst, HINSTANCE hprev, LPSTR cmdline, int ncmdshow)
+int APIENTRY WinMain(HINSTANCE hinst, HINSTANCE hprev, LPSTR cmdline, int ncmdshow)
 {
   int rc;
-  
-  extern int __argc;     /* this seems to work for all the compilers we tested, except Watcom compilers */
-  extern char** __argv;
-  
-  rc = main(__argc, __argv);
-  
+
+  //MessageBoxW (NULL, L"Hello World!", L"hello", MB_OK | MB_ICONINFORMATION);
+  //MessageBox(NULL, "WinMain", "gui-srlua", MB_OK);
+  rc = srlua_main(_argc, _argv);
+    // Note: if something calls srlua.c:fatal(), srlua_main() never returns.
+  //MessageBoxW(NULL, L"after main()", L"gui-srlua", MB_OK);
+
   return rc;
 }
+// vi: set ts=4 sts=4 sw=4 et ai: //

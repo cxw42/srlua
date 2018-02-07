@@ -8,6 +8,7 @@ LUALIB= $(LUA)/lib
 LUABIN= $(LUA)/bin
 LUASHARE= $(LUA)/share/lua/$(LUA_VER)
 
+# Set to -g to enable debugging
 G=-g
 
 # probably no need to change anything below here
@@ -17,7 +18,7 @@ G=-g
 #OLD_SHELL := $(SHELL)
 #SHELL = $(warning Building $@)$(OLD_SHELL)
 
-.PHONY: all test regen
+.PHONY: all test regen gui-test gui
 all:	regen test
 
 # Make sure our intermediate directory exists, unless we're running clean
@@ -33,7 +34,10 @@ CFLAGS= $(INCS) $(WARN) -O2 $G -std=c11 -U__STRICT_ANSI__ -Wno-overlength-string
 	# https://stackoverflow.com/users/1250772/kaz
 WARN= -ansi -pedantic -Wall -Wextra
 INCS= -I$(LUAINC)
+
 OBJS= srlua.o lfs.o
+GUI_OBJS= gui-srlua.o wmain.o lfs.o gui-srlua-res.o
+
 LIBS= luazip.a -L$(LUALIB) -lzip -lz -llua -lm #-ldl
 EXPORT= -Wl,--export-all-symbols
 # for Mac OS X comment the previous line above or do 'make EXPORT='
@@ -61,19 +65,28 @@ $(GLUE):	glue.c Makefile
 srlua.o: srlua.c
 	$(CC) -c $< $(CFLAGS) -o $@
 
-# Convert Lua source to a C string literal we can statically compile.
-# It is important to preserve the line breaks, since otherwise the first `--`
-# comment will wipe out the rest of the file.
-# We also strip leading and trailing whitespace, and omit lines that are
-# entirely comments.  The `$0 !~ /^--[^\[\]]/` check is to (hopefully) not
-# blow away block comments.
+# GUI version ======================
 
-# No default rule for lua->h
-#%.h: %.lua
+gui-test: gui-$T
+	export LUA_PATH= ; export LUA_CPATH= ; ./gui-$T *
 
+gui: gui-$T
 
-##$(GENERATED_INCS): %.h: %
-##	gawk -- 'BEGIN { print "static char *PRINT_R = " } { sub(/^[[:space:]]+/,""); sub(/[[:space:]]+$$/,""); } ($$0 !~ /^--[^\[\]]/) && /./ { gsub(/"/, "\\\""); print "\"" $$0 "\\n\""} END { print ";" }' $< > $@
+gui-$T:	gui-$S $(TEST) $(GLUE) Makefile
+	./$(GLUE) gui-$S $(TEST) gui-$T
+	chmod +x gui-$T
+
+gui-$S:	$(GUI_OBJS) Makefile
+	$(CC) -mwindows -o $@ $(EXPORT) $(GUI_OBJS) $(LIBS)
+
+gui-srlua.o: srlua.c
+	$(CC) -c $< $(CFLAGS) -DGUI -o $@
+
+gui-srlua-res.o: srlua.rc
+	windres -i $< -o $@
+
+#######################################################################
+# Lua source-embedding support
 
 GEN_INC_FILE := gen/generated_incs.mk
 GEN_HDR := gen/generated_incs.h
@@ -83,9 +96,6 @@ clean:
 	rm -f $(OBJS) $T $S core core.* a.out *.o $(GLUE) \
 		$(GEN_INC_FILE) $(GEN_HDR) $(GENERATED_INCS)
 	-rmdir gen
-
-#######################################################################
-# Lua source-embedding support
 
 # TODO use a loop, or a filter on the output of `luarocks show`.
 # Don't make GEN_INC_FILE if we're running `make clean`

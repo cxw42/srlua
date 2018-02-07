@@ -61,6 +61,7 @@ while read -r destfn modulename sourcefn ; do
         END { print ";" }'"'"' $< > $@' >> "$1"
 
     echo "srlua.o: $destfn" >> "$1"
+    echo "gui-srlua.o: $destfn" >> "$1"
     echo >> "$1"
 
 done < "$2"

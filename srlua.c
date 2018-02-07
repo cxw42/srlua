@@ -1,7 +1,7 @@
 // Changes by cxw42 Copyright (c) 2018 Chris White.  CC-BY-SA 3.0 or, at your
-// option, any later version.
+// option, any later version under the terms in sec. 4b of CC-BY-SA 3.0.
 
-/*
+/* Heavily modified from:
 * srlua.c
 * Lua interpreter for self-running programs
 * Luiz Henrique de Figueiredo <lhf@tecgraf.puc-rio.br>
@@ -74,7 +74,7 @@ LUALIB_API int luaopen_Module_source(lua_State* L)
     return 1;
 } //luaopen_Module_source
 
-/// Load embedded module #name, with source code #source.
+/// Load compiled-in module #name, with source code #source.
 /// Returns on success; doesn't return on error.
 /// Call from within a Lua context.
 void load_embedded_module(lua_State *L, const char *name, const char *source)
@@ -189,11 +189,11 @@ static int pmain(lua_State *L)
 
 static void fatal(const char* progname, const char* message)
 {
-    /*#ifdef _WIN32*/
-    /* MessageBox(NULL,message,progname,MB_ICONERROR | MB_OK);*/
-    /*#else*/
+#ifdef GUI
+    MessageBox(NULL,message,progname,MB_ICONERROR | MB_OK);
+#else
     fprintf(stderr,"%s: %s\n",progname,message);
-    /*#endif*/
+#endif
     exit(EXIT_FAILURE);
 }
 
@@ -256,19 +256,33 @@ char* getprog() {
     return (progdir);
 }
 
-int main(int argc, char *argv[])
+int srlua_main(int argc, char *argv[])
 {
     lua_State *L;
-    argv[0] = getprog();
 
+    argv[0] = getprog();
     if (argv[0]==NULL) fatal("srlua","cannot locate this executable");
-    L=luaL_newstate();
+
+#ifdef GUI
+    //MessageBox(NULL, "Hello, world! from srlua", argv[0], MB_OK);
+#endif
+
+    L = luaL_newstate();
     if (L==NULL) fatal(argv[0],"not enough memory for state");
     lua_pushcfunction(L,&pmain);
     lua_pushinteger(L,argc);
     lua_pushlightuserdata(L,argv);
-    if (lua_pcall(L,2,0,0)!=0) fatal(argv[0],lua_tostring(L,-1));
+    if (lua_pcall(L,2,0,0)!=0) {
+        fatal(argv[0],lua_tostring(L,-1));
+    }
     lua_close(L);
     return EXIT_SUCCESS;
 }
+
+#ifndef GUI
+// Can't define main(int,char**) in GUI mode or we get an automatic WinMain
+// that is used instead of the one from wmain.c.
+int main(int argc, char *argv[]) { return srlua_main(argc, argv); }
+#endif
+
 // vi: set ts=4 sts=4 sw=4 et ai: //

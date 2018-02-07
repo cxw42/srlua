@@ -19,15 +19,16 @@ print_r(zip)
 --print(#arg,...)
 --print"bye!"
 --
---print("hello again from inside "..arg[0])
---for i=0,#arg do
---  print(i,arg[i])
---end
+print("hello again from inside "..arg[0])
+for i=0,#arg do
+  print(i,arg[i])
+end
 
 --if #arg < 1 then
 --    return
 --end
 
+--[[
 local z = zip.open('test2.zip')
 local last_file_idx = #z
 for file_idx=1,last_file_idx do
@@ -39,6 +40,7 @@ for file_idx=1,last_file_idx do
 end
 
 z:close()
+--]]
 
 -- lfs example, from https://keplerproject.github.io/luafilesystem/examples.html
 local lfs = require 'lfs'
@@ -64,10 +66,10 @@ function attrdir (path)
     end
 end
 
-attrdir "."
+--attrdir "."
 
 
-print_r(package.loaded)
+--print_r(package.loaded)
 print"bye now!"
 
 -- vi: set ts=4 sts=4 sw=4 et ai: --
