@@ -1,4 +1,9 @@
+# Local, since it's not a luarock
 gen/print_r.h          print_r           ./print_r.lua
+
+# Penlight.  Note that they must be listed with dependencies before the
+# modules on which they depend, since we are not demand-loading yet.
+
 gen/pl_compat.h        pl.compat         /mingw/share/lua/5.3/pl/compat.lua
 gen/pl_utils.h         pl.utils          /mingw/share/lua/5.3/pl/utils.lua
 gen/pl_types.h         pl.types          /mingw/share/lua/5.3/pl/types.lua
@@ -37,4 +42,9 @@ gen/pl_stringio.h      pl.stringio       /mingw/share/lua/5.3/pl/stringio.lua
 gen/pl_template.h      pl.template       /mingw/share/lua/5.3/pl/template.lua
 gen/pl_test.h          pl.test           /mingw/share/lua/5.3/pl/test.lua
 gen/pl_url.h           pl.url            /mingw/share/lua/5.3/pl/url.lua
+
+# Top-level module is listed last since it demand-loads everything else
 gen/pl.h               pl                /mingw/share/lua/5.3/pl/init.lua
+
+# main routine, rather than glued-on
+#gen/main.h             MAIN              test.lua

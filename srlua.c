@@ -155,6 +155,10 @@ static int pmain(lua_State *L)
  // Tell Lua about embedded source modules
  register_lsources(L);
 
+#ifdef LSOURCE_HAVE_MAIN
+ // Run the compiled-in Lua main program
+ run_main_lsource(L);
+#else
  // Load the glued-on Lua script
  load(L,argv[0]);
 
@@ -175,6 +179,7 @@ static int pmain(lua_State *L)
  }
 
  lua_call(L,argc-1,0);  // Invoked the glued-on Lua source
+#endif
  return 0;
 }
 
