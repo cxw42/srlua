@@ -49,9 +49,6 @@ LUALIB_API int luaopen_brimworks_zip(lua_State* L);
 /* statically-linked luafilesystem */
 LUALIB_API int luaopen_lfs(lua_State* L);
 
-// statically-linked Lua source
-#include "gen/generated_incs.h"
-
 /// The source of the module to be loaded by luaopen_Module_source().
 /// A hack since luaL_requiref doesn't provide a void* that goes to the
 /// loader function.  Using a C global is simpler than using the Lua
@@ -72,7 +69,7 @@ LUALIB_API int luaopen_Module_source(lua_State* L)
   return luaL_error(L, "Cannot evaluate embedded module %s", module_name);
  }
  return 1;
-} //luaopen_print_r
+} //luaopen_Module_source
 
 /// Load embedded module #name, with source code #source.
 /// Returns on success; doesn't return on error.
@@ -84,6 +81,9 @@ void load_embedded_module(lua_State *L, const char *name, const char *source)
  lua_pop(L,1);	/* don't leave a copy of the module on the stack*/
  Module_source = NULL;
 } //load_embedded_module()
+
+// statically-linked Lua sources
+#include "gen/generated_incs.h"
 
 /*************************************************************************/
 
@@ -152,10 +152,13 @@ static int pmain(lua_State *L)
  luaL_requiref(L, "lfs", luaopen_lfs, 0);
  lua_pop(L,1);	// don't leave a copy of the module on the stack
 
- /* Tell Lua about embedded print_r */
- load_embedded_module(L, "print_r", LSRC_PRINT_R);
+ // Tell Lua about embedded source modules
+ register_lsources(L);
 
+ // Load the glued-on Lua script
  load(L,argv[0]);
+
+ // Stuff the arguments in global table `arg`
  lua_createtable(L,argc,0);
  for (i=0; i<argc; i++)
  {
@@ -164,11 +167,14 @@ static int pmain(lua_State *L)
  }
  lua_setglobal(L,"arg");
  luaL_checkstack(L,argc-1,"too many arguments to script");
+
+ // Also make argv the arguments to the function
  for (i=1; i<argc; i++)
  {
   lua_pushstring(L,argv[i]);
  }
- lua_call(L,argc-1,0);
+
+ lua_call(L,argc-1,0);  // Invoked the glued-on Lua source
  return 0;
 }
 
@@ -256,3 +262,4 @@ int main(int argc, char *argv[])
  lua_close(L);
  return EXIT_SUCCESS;
 }
+// vi: set ts=1 sts=1 sw=1 et ai: //
