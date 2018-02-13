@@ -8,6 +8,9 @@
 #if defined(_WIN32) || defined(__MINGW32__)
   #define WIN32_LEAN_AND_MEAN
   #include <windows.h>
+  #include <objbase.h>
+  #include <direct.h>
+  #include <rpc.h>
   #define _PATH_MAX MAX_PATH
 #else
   #define _PATH_MAX PATH_MAX
@@ -84,6 +87,65 @@ void load_embedded_module(lua_State *L, const char *name, const char *source)
 // statically-linked Lua sources
 #include "gen/generated_incs.h"
 
+// ***********************************************************************
+// Package `swiss`
+
+/// Absolute path to the extracted payload
+char payload_fullname[_PATH_MAX+1];
+
+/// Directory containing the extracted payload, with trailing separator
+char payload_dir[_PATH_MAX+1];
+
+/// Create a temporary directory in #payload_dir.
+/// @return throws on failure, or the dir name on success
+int swiss_make_temp_dir(lua_State *L)
+{
+    GUID guid;
+    //char str_guid[256];
+    if(FAILED(CoCreateGuid(&guid)))
+        return luaL_error(L, "Could not create unique directory name");
+
+    //int ok = StringFromGUID2(&guid, str_guid, sizeof(str_guid));
+    unsigned char *str_guid;
+    RPC_STATUS ok = UuidToString(&guid, &str_guid);
+    if(ok != RPC_S_OK)
+        return luaL_error(L, "Could not get unique directory name");
+
+    char dirname[_PATH_MAX+1];
+    if( (strlen(payload_dir) + 4 + strlen((const char *)str_guid) + 1) > sizeof(dirname)) {
+        RpcStringFree(&str_guid);
+        return luaL_error(L, "Unique directory name is too long (!?)");
+    }
+
+    strcpy(dirname, payload_dir);
+    strcat(dirname, "SWI-");
+    strcat(dirname, (const char *)str_guid);
+
+    RpcStringFree(&str_guid);
+
+    if(_mkdir(dirname) == -1)
+        return luaL_error(L, "Could not create unique directory %s", dirname);
+
+    lua_pushstring(L, dirname);
+    return 1;
+} //swiss_make_temp_dir
+
+/// Load package `swiss`
+LUALIB_API int luaopen_swiss(lua_State* L)
+{
+    lua_newtable(L);
+    lua_pushstring(L, payload_fullname);
+    lua_setfield(L, -2, "payload_fullname");
+
+    lua_pushstring(L, payload_dir);
+    lua_setfield(L, -2, "payload_dir");
+
+    lua_pushcfunction(L, swiss_make_temp_dir);
+    lua_setfield(L, -2, "make_temp_dir");
+
+    return 1;
+} //luaopen_swiss
+
 /*************************************************************************/
 
 #if 0
@@ -157,12 +219,20 @@ static void extract_payload(lua_State *L,
     // Get temporary path name - modified from
     // https://msdn.microsoft.com/en-us/library/windows/desktop/aa363875(v=vs.85).aspx
     dw = GetTempPathA(dest_path_buflen, dest_path_buf);
-    if((dw>_PATH_MAX) || (dw==0)) {
-        strcpy(dest_path_buf,".");
+    if((dw>dest_path_buflen) || (dw==0)) {
+        strcpy(dest_path_buf,".\\");
     }
+
+#ifdef _DEBUG
+    printf("Temp path is %s\n", dest_path_buf);
+#endif
 
     ui = GetTempFileNameA(dest_path_buf, "SWI", 0, dest_filename_buf);
     if(ui==0) cannot("create temporary file");
+
+#ifdef _DEBUG
+    printf("Temp filename is %s\n", dest_filename_buf);
+#endif
 
     destfd = fopen(dest_filename_buf, "wb");
     if(destfd==NULL) cannot("create output file");
@@ -229,10 +299,13 @@ static int pmain(lua_State *L)
     // Tell Lua about compiled-in source modules
     register_lsources(L);
 
-    char payload_fullname[_PATH_MAX+1];  // path+name
-    char payload_dir[_PATH_MAX+1];       // just name
+    // Extract the payload into its own file
     extract_payload(L, argv[0], payload_fullname, sizeof(payload_fullname),
             payload_dir, sizeof(payload_dir));
+
+    // Tell Lua about the extracted payload by putting values in package "swiss"
+    luaL_requiref(L,"swiss", luaopen_swiss, 0);
+    lua_pop(L,1);
 
 #ifndef LSOURCE_HAVE_MAIN
 #error "Need a MAIN lua source compiled in"

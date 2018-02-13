@@ -47,4 +47,4 @@ gen/pl_url.h           pl.url            /mingw/share/lua/5.3/pl/url.lua
 gen/pl.h               pl                /mingw/share/lua/5.3/pl/init.lua
 
 # main routine, rather than glued-on
-gen/main.h             MAIN              test.lua
+gen/main.h             MAIN              main.lua

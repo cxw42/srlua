@@ -9,7 +9,7 @@ LUABIN= $(LUA)/bin
 LUASHARE= $(LUA)/share/lua/$(LUA_VER)
 
 # Set to -g to enable debugging
-G=-g
+G=-g -D_DEBUG
 
 # probably no need to change anything below here
 
@@ -38,7 +38,7 @@ INCS= -I$(LUAINC)
 OBJS= srlua.o lfs.o
 GUI_OBJS= gui-srlua.o wmain.o lfs.o gui-srlua-res.o
 
-LIBS= luazip.a -L$(LUALIB) -lzip -lz -llua -lm #-ldl
+LIBS= luazip.a -L$(LUALIB) -lzip -lz -llua -lm -lrpcrt4 -lole32 #-ldl
 EXPORT= -Wl,--export-all-symbols
 # for Mac OS X comment the previous line above or do 'make EXPORT='
 
