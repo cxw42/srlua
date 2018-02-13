@@ -45,8 +45,52 @@ In `cmd`:
 That gives you a DLL in `./installed`, but you don't care about that.  Instead,
 grab `./CMakeFiles/cmod_zip.dir/objects.a`.  Copy it to `srlua/luazip.a`.
 
+## fltk
+
+### Build
+
+    ./configure --prefix=/mingw --enable-localzlib --enable-localjpeg --enable-localpng
+    make -j4
+    make install
+
+Wait... a build that works without changes???!!!?!??
+
+## fltk4lua
+
+### Build
+
+    luarocks install fltk4lua FLTK_INCDIR=/mingw/include FLTK_LIBDIR=/mingw/lib
+
+## winreg
+
+    luarocks install winreg
+
 ## `srlua`
 
-Build with the makefile --- it should work.
+    make gui-test
+
+## Notes
+
+I wanted to try IUP, since I think it may use native widgets.  However, I had
+problems with freetype, which CD depends on, which IUP depends on.
+To figure out later.
+
+## luaprompt (disregard)
+
+Not required, but nice for debugging.  But it requires sys/ioctl.h, which I
+don't have.
+
+### Dependencies
+
+Install `readline` in `/mingw`.  I got it from
+[gnuwin32](http://gnuwin32.sourceforge.net/packages/readline.htm).
+
+### Mods
+
+ - `luarocks unpack luaprompt`
+ - Edit `luaprompt-0.7-1.rockspec`:
+   - Remove the `supported_platforms` line
+ - Run `luarocks --verbose make luaprompt-0.7-1.rockspec READLINE_DIR=/mingw HISTORY_DIR=/mingw`
+
 
 []( vi: set ts=4 sts=4 sw=4 et ai ft=markdown: )

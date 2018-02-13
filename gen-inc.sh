@@ -85,8 +85,14 @@ echo -e '}\n' >> "$3"
 if [[ $mainidx ]]; then
     echo '#define LSOURCE_HAVE_MAIN' >> "$3"
     echo 'int run_main_lsource(lua_State *L) {' >> "$3"
-    # TODO accept arguments
     echo "  return luaL_dostring(L, ${varnames[$mainidx]});" >> "$3"
+    echo -e '}\n' >> "$3"
+
+    echo 'int load_main_lsource(lua_State *L) {' >> "$3"
+    echo "  if(luaL_loadstring(L, ${varnames[$mainidx]})) {" >> "$3"
+    echo "    return luaL_error(L, \"Can't eval ${varnames[$mainidx]}\");" >> "$3"
+    echo '  }' >> "$3"
+    echo '  return 0; //no errors' >> "$3"
     echo -e '}\n' >> "$3"
 fi
 
