@@ -51,6 +51,9 @@ LUALIB_API int luaopen_brimworks_zip(lua_State* L);
 /* statically-linked luafilesystem */
 LUALIB_API int luaopen_lfs(lua_State* L);
 
+// statically-linked checks
+extern int luaopen_checks( lua_State *L);
+
 /// The source of the module to be loaded by luaopen_Module_source().
 /// A hack since luaL_requiref doesn't provide a void* that goes to the
 /// loader function.  Using a C global is simpler than using the Lua
@@ -293,7 +296,11 @@ static int pmain(lua_State *L)
     lua_pop(L,1);	/* don't leave a copy of the module on the stack*/
 
     // Ditto for LFS
-    luaL_requiref(L, "lfs", luaopen_lfs, 0);
+    luaL_requiref(L, "lfs", luaopen_lfs, 1);
+    lua_pop(L,1);	// don't leave a copy of the module on the stack
+
+    // And checks
+    luaL_requiref(L, "checks", luaopen_checks, 1);
     lua_pop(L,1);	// don't leave a copy of the module on the stack
 
     // Tell Lua about compiled-in source modules

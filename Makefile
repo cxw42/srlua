@@ -35,7 +35,7 @@ CFLAGS= $(INCS) $(WARN) -O2 $G -std=c11 -U__STRICT_ANSI__ -Wno-overlength-string
 WARN= -ansi -pedantic -Wall -Wextra
 INCS= -I$(LUAINC)
 
-OBJS= srlua.o lfs.o
+OBJS= srlua.o lfs.o checks.o
 GUI_OBJS= gui-srlua.o wmain.o lfs.o gui-srlua-res.o
 
 LIBS= luazip.a -L$(LUALIB) -lzip -lz -llua -lm -lrpcrt4 -lole32 #-ldl
