@@ -1,6 +1,7 @@
 // Changes by cxw42 Copyright (c) 2018 Chris White.  CC-BY-SA 3.0 or, at your
 // option, any later version under the terms in sec. 4b of CC-BY-SA 3.0.
 
+// #includes ///////////////////////////////////////////////////////////// {{{1
 #ifndef _WIN32
 #error We only support WIN32 at the moment.  Sorry!
 #endif
@@ -44,15 +45,17 @@
 #include "lualib.h"
 #include "lauxlib.h"
 
-/*************************************************************************/
-/* statically-linked lua-zip */
+// }}}1
+// Statically-linked libraries /////////////////////////////////////////// {{{1
 LUALIB_API int luaopen_brimworks_zip(lua_State* L);
-
-/* statically-linked luafilesystem */
 LUALIB_API int luaopen_lfs(lua_State* L);
+LUALIB_API int luaopen_checks( lua_State *L);
+#ifdef GUI
+LUALIB_API int luaopen_fltk4lua( lua_State* L );
+#endif
 
-// statically-linked checks
-extern int luaopen_checks( lua_State *L);
+// }}}1
+// Embedded-source libraries ///////////////////////////////////////////// {{{1
 
 /// The source of the module to be loaded by luaopen_Module_source().
 /// A hack since luaL_requiref doesn't provide a void* that goes to the
@@ -83,15 +86,103 @@ void load_embedded_module(lua_State *L, const char *name, const char *source)
 {
     Module_source = source;
     luaL_requiref(L, name, luaopen_Module_source, 0);
-    lua_pop(L,1);	/* don't leave a copy of the module on the stack*/
+    lua_pop(L,1);   // don't leave a copy of the module on the stack
     Module_source = NULL;
 } //load_embedded_module()
 
 // statically-linked Lua sources
 #include "gen/generated_incs.h"
 
-// ***********************************************************************
-// Package `swiss`
+#ifdef GUI
+#include "gen/gui.h"
+#endif
+
+// }}}1
+// Helpers /////////////////////////////////////////////////////////////// {{{1
+
+static void fatal(const char* progname, const char* message)
+{
+#ifdef GUI
+    MessageBox(NULL,message,progname,MB_ICONERROR | MB_OK);
+#else
+    fprintf(stderr,"error in %s: %s\n",progname,message);
+#endif
+    exit(EXIT_FAILURE);
+}
+
+/// Get the filename of the running executable.
+/// progdir must have at least _PATH_MAX+1 bytes
+char* getprog(char *progdir)
+{
+    int nsize = _PATH_MAX + 1;
+    //char* progdir = malloc(nsize * sizeof(char));
+    char *lb;
+    int n = 0;
+
+#if defined(__CYGWIN__)
+    char win_buff[_PATH_MAX + 1];
+    GetModuleFileNameA(NULL, win_buff, nsize);
+    cygwin_conv_path(CCP_WIN_A_TO_POSIX, win_buff, progdir, nsize);
+    n = strlen(progdir);
+
+#elif defined(_WIN32)
+    n = GetModuleFileNameA(NULL, progdir, nsize);
+
+#elif defined(__linux__)
+    n = readlink("/proc/self/exe", progdir, nsize);
+    if (n > 0) progdir[n] = 0;
+
+#elif defined(__sun)
+    pid_t pid = getpid();
+    char linkname[256];
+    sprintf(linkname, "/proc/%d/path/a.out", pid);
+    n = readlink(linkname, progdir, nsize);
+    if (n > 0) progdir[n] = 0;
+
+#elif defined(__FreeBSD__)
+    int mib[4];
+    mib[0] = CTL_KERN;
+    mib[1] = KERN_PROC;
+    mib[2] = KERN_PROC_PATHNAME;
+    mib[3] = -1;
+    size_t cb = nsize;
+    sysctl(mib, 4, progdir, &cb, NULL, 0);
+    n = cb;
+
+#elif defined(__BSD__)
+    n = readlink("/proc/curproc/file", progdir, nsize);
+    if (n > 0) progdir[n] = 0;
+
+#elif defined(__APPLE__)
+    uint32_t nsize_apple = nsize;
+    if (_NSGetExecutablePath(progdir, &nsize_apple) == 0)
+        n = strlen(progdir);
+
+#else
+    // FALLBACK
+    // Use 'lsof' ... should work on most UNIX systems (incl. OSX)
+    // lsof will list open files, this captures the 1st file listed (usually the executable)
+    int pid;
+    FILE* fd;
+    char cmd[80];
+    pid = getpid();
+
+    sprintf(cmd, "lsof -p %d | awk '{if ($5==\"REG\") { print $9 ; exit}}' 2> /dev/null", pid);
+    fd = popen(cmd, "r");
+    n = fread(progdir, 1, nsize, fd);
+    pclose(fd);
+
+    // remove newline
+    if (n > 1) progdir[--n] = '\0';
+#endif
+
+    if (n == 0 || n == nsize || (lb = strrchr(progdir, (int)LUA_DIRSEP[0])) == NULL)
+        return NULL;
+    return (progdir);
+} //getprog()
+
+// }}}1
+// Package `swiss` /////////////////////////////////////////////////////// {{{1
 
 /// Absolute path to the extracted payload
 char payload_fullname[_PATH_MAX+1];
@@ -155,17 +246,8 @@ LUALIB_API int luaopen_swiss(lua_State* L)
     return 1;
 } //luaopen_swiss
 
-/*************************************************************************/
-
-static void fatal(const char* progname, const char* message)
-{
-#ifdef GUI
-    MessageBox(NULL,message,progname,MB_ICONERROR | MB_OK);
-#else
-    fprintf(stderr,"error in %s: %s\n",progname,message);
-#endif
-    exit(EXIT_FAILURE);
-}
+// }}}1
+// Extract payload /////////////////////////////////////////////////////// {{{1
 
 /// Extract the payload glued onto the EXE (if any) to a temporary file.
 /// Fills in #dest_filename_buf on success.
@@ -245,32 +327,49 @@ static void extract_payload(lua_State *L,
 #undef cannot
 } //extract_payload()
 
+// }}}1
+// Lua main ////////////////////////////////////////////////////////////// {{{1
 static int pmain(lua_State *L)
 {
     int argc=lua_tointeger(L,1);
     char** argv=lua_touserdata(L,2);
     int i;
 
+    // Stuff the arguments in global table `arg`
+    lua_createtable(L,argc,0);
+    for (i=0; i<argc; i++)
+    {
+        lua_pushstring(L,argv[i]);
+        lua_rawseti(L,-2,i);
+    }
+    lua_setglobal(L,"arg");
+
+    // Load the standard libraries
     lua_gc(L,LUA_GCSTOP,0);
     luaL_openlibs(L);
     lua_gc(L,LUA_GCRESTART,0);
+
+    // Load statically-linked libararies
 
     // Set up Lua to call luaopen_brimworks_zip() to get the package for
     // brimworks.zip.  Thanks for the Lua 5.3 illustration to
     // https://github.com/philanc/slua/blob/master/src/lua/linit.c
     luaL_requiref(L, "brimworks.zip", luaopen_brimworks_zip, 0);
-    lua_pop(L,1);	/* don't leave a copy of the module on the stack*/
+    lua_pop(L,1);   // don't leave a copy of the module on the stack
 
-    // Ditto for LFS
-    luaL_requiref(L, "lfs", luaopen_lfs, 1);
-    lua_pop(L,1);	// don't leave a copy of the module on the stack
+    luaL_requiref(L, "lfs", luaopen_lfs, 1); lua_pop(L,1);
+    luaL_requiref(L, "checks", luaopen_checks, 1); lua_pop(L,1);
 
-    // And checks
-    luaL_requiref(L, "checks", luaopen_checks, 1);
-    lua_pop(L,1);	// don't leave a copy of the module on the stack
+#ifdef GUI
+    luaL_requiref(L, "fltk4lua", luaopen_fltk4lua, 0); lua_pop(L,1);
+#endif
 
     // Tell Lua about compiled-in source modules
     register_lsources(L);
+
+#ifdef GUI
+    load_embedded_module(L, "gui", LSRC_GUI);
+#endif
 
     // Extract the payload into its own file
     extract_payload(L, argv[0], payload_fullname, sizeof(payload_fullname),
@@ -284,110 +383,17 @@ static int pmain(lua_State *L)
 #error "Need a MAIN lua source compiled in"
 #endif
 
-    // Load the compiled-in Lua main program
-    load_main_lsource(L);
-
-#if 0
-    // Load the glued-on Lua script
-    load(L,argv[0]);
-#endif
-
-    // Stuff the arguments in global table `arg`
-    lua_createtable(L,argc,0);
-    for (i=0; i<argc; i++)
-    {
-        lua_pushstring(L,argv[i]);
-        lua_rawseti(L,-2,i);
-    }
-    lua_setglobal(L,"arg");
-    luaL_checkstack(L,argc-1,"too many arguments to script");
-
-    // Also make argv the arguments to the function
-    for (i=1; i<argc; i++)
-    {
-        lua_pushstring(L,argv[i]);
-    }
-
-    lua_call(L,argc-1,0);  // Invoked the compiled-in Lua source
+    // Hand off to the compiled-in Lua main program
+    run_main_lsource(L);
 
     return 0;
 } //pmain
 
-/// Get the filename of the running executable.
-/// progdir must have at least _PATH_MAX+1 bytes
-char* getprog(char *progdir)
-{
-    int nsize = _PATH_MAX + 1;
-    //char* progdir = malloc(nsize * sizeof(char));
-    char *lb;
-    int n = 0;
-
-#if defined(__CYGWIN__)
-    char win_buff[_PATH_MAX + 1];
-    GetModuleFileNameA(NULL, win_buff, nsize);
-    cygwin_conv_path(CCP_WIN_A_TO_POSIX, win_buff, progdir, nsize);
-    n = strlen(progdir);
-
-#elif defined(_WIN32)
-    n = GetModuleFileNameA(NULL, progdir, nsize);
-
-#elif defined(__linux__)
-    n = readlink("/proc/self/exe", progdir, nsize);
-    if (n > 0) progdir[n] = 0;
-
-#elif defined(__sun)
-    pid_t pid = getpid();
-    char linkname[256];
-    sprintf(linkname, "/proc/%d/path/a.out", pid);
-    n = readlink(linkname, progdir, nsize);
-    if (n > 0) progdir[n] = 0;
-
-#elif defined(__FreeBSD__)
-    int mib[4];
-    mib[0] = CTL_KERN;
-    mib[1] = KERN_PROC;
-    mib[2] = KERN_PROC_PATHNAME;
-    mib[3] = -1;
-    size_t cb = nsize;
-    sysctl(mib, 4, progdir, &cb, NULL, 0);
-    n = cb;
-
-#elif defined(__BSD__)
-    n = readlink("/proc/curproc/file", progdir, nsize);
-    if (n > 0) progdir[n] = 0;
-
-#elif defined(__APPLE__)
-    uint32_t nsize_apple = nsize;
-    if (_NSGetExecutablePath(progdir, &nsize_apple) == 0)
-        n = strlen(progdir);
-
-#else
-    // FALLBACK
-    // Use 'lsof' ... should work on most UNIX systems (incl. OSX)
-    // lsof will list open files, this captures the 1st file listed (usually the executable)
-    int pid;
-    FILE* fd;
-    char cmd[80];
-    pid = getpid();
-
-    sprintf(cmd, "lsof -p %d | awk '{if ($5==\"REG\") { print $9 ; exit}}' 2> /dev/null", pid);
-    fd = popen(cmd, "r");
-    n = fread(progdir, 1, nsize, fd);
-    pclose(fd);
-
-    // remove newline
-    if (n > 1) progdir[--n] = '\0';
-#endif
-
-    if (n == 0 || n == nsize || (lb = strrchr(progdir, (int)LUA_DIRSEP[0])) == NULL)
-        return NULL;
-    return (progdir);
-} //getprog()
+// }}}1
+// C main() ////////////////////////////////////////////////////////////// {{{1
 
 static char progbuf[_PATH_MAX+1];
-
 static char initial_argv0[_PATH_MAX+1];
-
 static char errmsg_buf[65536] = {0};
 
 int srlua_main(int argc, char *argv[])
@@ -441,6 +447,7 @@ int srlua_main(int argc, char *argv[])
 int main(int argc, char *argv[]) { return srlua_main(argc, argv); }
 #endif
 
+// }}}1
 ///////////////////////////////////////////////////////////////////////////
 
 /* Heavily modified from:
@@ -451,4 +458,4 @@ int main(int argc, char *argv[]) { return srlua_main(argc, argv); }
 * This code is hereby placed in the public domain.
 */
 
-// vi: set ts=4 sts=4 sw=4 et ai: //
+// vi: set ts=4 sts=4 sw=4 et ai fo-=ro foldmethod=marker: //

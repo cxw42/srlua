@@ -49,7 +49,7 @@ GUI_LIBS= luazip.a libfltk4lua.a \
 	/mingw/lib/libfltk_images.a /mingw/lib/libfltk_jpeg.a \
 	/mingw/lib/libfltk_png.a /mingw/lib/libfltk_z.a /mingw/lib/libfltk.a \
 	-L$(LUALIB) -lzip -lz -llua -lm -lstdc++ \
-	-ladvapi32 -lcomctl32 -lgdi32 -lrpcrt4 -lole32 -lshell32 -luser32
+	-ladvapi32 -lcomctl32 -lgdi32 -lrpcrt4 -lole32 -luuid -lshell32 -luser32
 
 EXPORT= -Wl,--export-all-symbols
 # for Mac OS X comment the previous line above or do 'make EXPORT='

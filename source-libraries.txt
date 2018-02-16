@@ -47,5 +47,10 @@ gen/print_r.h          print_r           ./print_r.lua
 #gen/pl.h               pl                /mingw/share/lua/5.3/pl/init.lua
 
 gen/atexit2.h          atexit2           atexit2.lua
+
+# GUI framework - runs first.  Requires atexit2.  MANUAL means it is not
+# automatically loaded by register_lsources().
+gen/gui.h              gui               gui.lua                           MANUAL
+
 # main routine, rather than glued-on
 gen/main.h             MAIN              main.lua

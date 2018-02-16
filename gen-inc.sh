@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # gen-inc.sh: Make rules in $1, and headers in $3, based on the file list in $2.
 # No parameter or filename can have a $ in it.
 
@@ -7,9 +7,10 @@ rm -f "$3"
 
 varnames=()
 modulenames=()
+is_manual=()
 idx="-1"
 mainidx=
-while read -r destfn modulename sourcefn ; do
+while read -r destfn modulename sourcefn conditions ; do
     #echo "$modulename in $sourcefn -> $destfn"
 
     # Skip blank lines, or lines in which the first non-whitespace character
@@ -25,8 +26,13 @@ while read -r destfn modulename sourcefn ; do
         echo "Using main routine at index $mainidx"
     fi
 
-    includename=`basename "$destfn"`
-    echo "#include \"$includename\"" >> "$3"
+    if [[ $conditions == 'MANUAL' ]]; then
+        is_manual+=('yes')
+    else
+        is_manual+=('')
+        includename=`basename "$destfn"`
+        echo "#include \"$includename\"" >> "$3"
+    fi
 
     varname=`echo "LSRC_$modulename" | tr '.' '_' | tr '[a-z]' '[A-Z]'`
     varnames+=("$varname")
@@ -82,6 +88,9 @@ while [[ $idx -lt ${#varnames[@]} ]] ; do
 
     # main is handled separately
     if [[ $mainidx && ( $mainidx -eq $idx ) ]]; then continue; fi
+
+    # manual are also handled separately
+    if [[ ${is_manual[$idx]} ]]; then continue; fi
 
     echo "  load_embedded_module(L, \"${modulenames[$idx]}\", ${varnames[$idx]});" >> "$3"
 done
