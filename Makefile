@@ -28,18 +28,29 @@ ifeq (,$(filter clean clean-%,$(MAKECMDGOALS)))
 endif
 
 CC= gcc
-CFLAGS= $(INCS) $(WARN) -O2 $G -std=c11 -U__STRICT_ANSI__ -Wno-overlength-strings
+CFLAGS= $(INCS) $(WARN) $G -std=c11 -U__STRICT_ANSI__ -Wno-overlength-strings
 	# -U__STRICT_ANSI__ is to expose the definition of _fileno().
 	# Thanks to https://stackoverflow.com/a/21035923/2877364 by
 	# https://stackoverflow.com/users/1250772/kaz
 WARN= -ansi -pedantic -Wall -Wextra
 INCS= -I$(LUAINC)
+GUI_INCS = $(INCS) \
+	   -I/mingw/include -I/mingw/include/FL/images -DWIN32 -DUSE_OPENGL32 \
+	   -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE
+GUI_CFLAGS= $(GUI_INCS) $(WARN) $G -std=c11 -U__STRICT_ANSI__ -Wno-overlength-strings
 
 OBJS= srlua.o lfs.o checks.o
 GUI_OBJS= gui-srlua.o wmain.o lfs.o gui-srlua-res.o checks.o
-	# TODO statically link fltk4lua
 
 LIBS= luazip.a -L$(LUALIB) -lzip -lz -llua -lm -lrpcrt4 -lole32 #-ldl
+
+# Statically link fltk and fltk4lua
+GUI_LIBS= luazip.a libfltk4lua.a \
+	/mingw/lib/libfltk_images.a /mingw/lib/libfltk_jpeg.a \
+	/mingw/lib/libfltk_png.a /mingw/lib/libfltk_z.a /mingw/lib/libfltk.a \
+	-L$(LUALIB) -lzip -lz -llua -lm -lstdc++ \
+	-ladvapi32 -lcomctl32 -lgdi32 -lrpcrt4 -lole32 -lshell32 -luser32
+
 EXPORT= -Wl,--export-all-symbols
 # for Mac OS X comment the previous line above or do 'make EXPORT='
 
@@ -78,10 +89,10 @@ gui-$T:	gui-$S $(TEST) $(GLUE) Makefile
 	chmod +x gui-$T
 
 gui-$S:	$(GUI_OBJS) Makefile
-	$(CC) -mwindows -o $@ $(EXPORT) $(GUI_OBJS) $(LIBS)
+	$(CC) -mwindows -o $@ $(EXPORT) $(GUI_OBJS) $(GUI_LIBS)
 
 gui-srlua.o: srlua.c
-	$(CC) -c $< $(CFLAGS) -DGUI -o $@
+	$(CC) -c $< $(GUI_CFLAGS) -DGUI -o $@
 
 gui-srlua-res.o: srlua.rc
 	windres -i $< -o $@

@@ -145,6 +145,13 @@ LUALIB_API int luaopen_swiss(lua_State* L)
     lua_pushcfunction(L, swiss_make_temp_dir);
     lua_setfield(L, -2, "make_temp_dir");
 
+#ifdef GUI
+    lua_pushboolean(L, TRUE);
+#else
+    lua_pushboolean(L, FALSE);
+#endif
+    lua_setfield(L, -2, "gui");
+
     return 1;
 } //luaopen_swiss
 

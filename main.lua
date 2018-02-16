@@ -1,10 +1,10 @@
 -- main.lua: Bootstrapper for Swiss
 -- Copyright (c) 2018 Chris White.  CC-BY-SA 3.0.
 
+-- atexit2, swiss, print_r, lfs are already in the global space
 local zip = require('brimworks.zip')
 
---local atexit2 = require('atexit2')
-
+print('Running in ' .. (swiss.gui and 'GUI' or 'console') .. ' mode')
 print('Payload is',swiss.payload_fullname,'in dir',swiss.payload_dir)
 
 atexit2( function()
@@ -123,7 +123,8 @@ for file_idx=1,last_file_idx do
     file:close()
 end
 
-print('Press enter to continue')
-io.read()   -- DEBUG
+-- DEBUG
+--print('Press enter to continue')
+--io.read()
 
 -- vi: set ts=4 sts=4 sw=4 et ai fo-=ro ff=unix: --

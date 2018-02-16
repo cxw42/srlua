@@ -55,11 +55,24 @@ grab `./CMakeFiles/cmod_zip.dir/objects.a`.  Copy it to `srlua/luazip.a`.
 
 Wait... a build that works without changes???!!!?!??
 
+This makes static libraries in /mingw/lib, not dynamic
+
 ## fltk4lua
 
 ### Build
 
-    luarocks install fltk4lua FLTK_INCDIR=/mingw/include FLTK_LIBDIR=/mingw/lib
+    luarocks unpack fltk4lua
+    cd fltk4lua-0.1-1/lua-fltk4lua
+    luarocks make fltk4lua-0.1-1.rockspec FLTK_INCDIR=/mingw/include FLTK_LIBDIR=/mingw/lib
+
+Note: the `make` will also install fltk4lua as a rock.
+
+    ar r libfltk4lua.a src/fltk4lua.o src/f4l_enums.o src/f4l_ask.o src/f4l_image.o src/f4l_shared_image.o src/f4l_widget.o src/f4l_box.o src/f4l_button.o src/f4l_chart.o src/f4l_clock.o src/f4l_group.o src/f4l_browserx.o src/f4l_browser.o src/f4l_file_browser.o src/f4l_check_browser.o src/f4l_input_choice.o src/f4l_color_chooser.o src/f4l_pack.o src/f4l_scroll.o src/f4l_spinner.o src/f4l_tabs.o src/f4l_tile.o src/f4l_window.o src/f4l_wizard.o src/f4l_input.o src/f4l_menu.o src/f4l_choice.o src/f4l_menu_bar.o src/f4l_menu_button.o src/f4l_progress.o src/f4l_valuator.o src/f4l_adjuster.o src/f4l_counter.o src/f4l_dial.o src/f4l_roller.o src/f4l_slider.o src/f4l_value_input.o src/f4l_value_output.o moon/moon.o compat-5.3/c-api/compat-5.3.o
+
+(or whatever `.o` files were listed on the `gcc -shared` command at the end of
+the `luarocks make` process)
+
+    cp libfltk4lua.a <the srlua directory>
 
 ## winreg
 
@@ -93,4 +106,4 @@ Install `readline` in `/mingw`.  I got it from
  - Run `luarocks --verbose make luaprompt-0.7-1.rockspec READLINE_DIR=/mingw HISTORY_DIR=/mingw`
 
 
-[]( vi: set ts=4 sts=4 sw=4 et ai ft=markdown: )
+<!-- vi: set ts=4 sts=4 sw=4 et ai ft=markdown: -->
