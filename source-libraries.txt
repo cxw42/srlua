@@ -4,47 +4,48 @@ gen/print_r.h          print_r           ./print_r.lua
 # Penlight.  Note that they must be listed with dependencies before the
 # modules on which they depend, since we are not demand-loading yet.
 
-gen/pl_compat.h        pl.compat         /mingw/share/lua/5.3/pl/compat.lua
-gen/pl_utils.h         pl.utils          /mingw/share/lua/5.3/pl/utils.lua
-gen/pl_types.h         pl.types          /mingw/share/lua/5.3/pl/types.lua
-gen/pl_tablex.h        pl.tablex         /mingw/share/lua/5.3/pl/tablex.lua
-gen/pl_text.h          pl.text           /mingw/share/lua/5.3/pl/text.lua
-gen/pl_stringx.h       pl.stringx        /mingw/share/lua/5.3/pl/stringx.lua
-gen/pl_path.h          pl.path           /mingw/share/lua/5.3/pl/path.lua
-gen/pl_class.h         pl.class          /mingw/share/lua/5.3/pl/class.lua
-gen/pl_lexer.h         pl.lexer          /mingw/share/lua/5.3/pl/lexer.lua
-gen/pl_pretty.h        pl.pretty         /mingw/share/lua/5.3/pl/pretty.lua
-gen/pl_Date.h          pl.Date           /mingw/share/lua/5.3/pl/Date.lua
-gen/pl_List.h          pl.List           /mingw/share/lua/5.3/pl/List.lua
-gen/pl_Map.h           pl.Map            /mingw/share/lua/5.3/pl/Map.lua
-gen/pl_MultiMap.h      pl.MultiMap       /mingw/share/lua/5.3/pl/MultiMap.lua
-gen/pl_OrderedMap.h    pl.OrderedMap     /mingw/share/lua/5.3/pl/OrderedMap.lua
-gen/pl_Set.h           pl.Set            /mingw/share/lua/5.3/pl/Set.lua
-gen/pl_luabalanced.h   pl.luabalanced    /mingw/share/lua/5.3/pl/luabalanced.lua
-gen/pl_xml.h           pl.xml            /mingw/share/lua/5.3/pl/xml.lua
-gen/pl_sip.h           pl.sip            /mingw/share/lua/5.3/pl/sip.lua
-gen/pl_app.h           pl.app            /mingw/share/lua/5.3/pl/app.lua
-gen/pl_array2d.h       pl.array2d        /mingw/share/lua/5.3/pl/array2d.lua
-gen/pl_comprehension.h pl.comprehension  /mingw/share/lua/5.3/pl/comprehension.lua
-gen/pl_config.h        pl.config         /mingw/share/lua/5.3/pl/config.lua
-gen/pl_data.h          pl.data           /mingw/share/lua/5.3/pl/data.lua
-gen/pl_dir.h           pl.dir            /mingw/share/lua/5.3/pl/dir.lua
-gen/pl_file.h          pl.file           /mingw/share/lua/5.3/pl/file.lua
-gen/pl_func.h          pl.func           /mingw/share/lua/5.3/pl/func.lua
-gen/pl_import_into.h   pl.import_into    /mingw/share/lua/5.3/pl/import_into.lua
-gen/pl_input.h         pl.input          /mingw/share/lua/5.3/pl/input.lua
-gen/pl_lapp.h          pl.lapp           /mingw/share/lua/5.3/pl/lapp.lua
-gen/pl_operator.h      pl.operator       /mingw/share/lua/5.3/pl/operator.lua
-gen/pl_permute.h       pl.permute        /mingw/share/lua/5.3/pl/permute.lua
-gen/pl_seq.h           pl.seq            /mingw/share/lua/5.3/pl/seq.lua
-gen/pl_strict.h        pl.strict         /mingw/share/lua/5.3/pl/strict.lua
-gen/pl_stringio.h      pl.stringio       /mingw/share/lua/5.3/pl/stringio.lua
-gen/pl_template.h      pl.template       /mingw/share/lua/5.3/pl/template.lua
-gen/pl_test.h          pl.test           /mingw/share/lua/5.3/pl/test.lua
-gen/pl_url.h           pl.url            /mingw/share/lua/5.3/pl/url.lua
+#gen/pl_compat.h        pl.compat         /mingw/share/lua/5.3/pl/compat.lua
+#gen/pl_utils.h         pl.utils          /mingw/share/lua/5.3/pl/utils.lua
+#gen/pl_types.h         pl.types          /mingw/share/lua/5.3/pl/types.lua
+#gen/pl_tablex.h        pl.tablex         /mingw/share/lua/5.3/pl/tablex.lua
+#gen/pl_text.h          pl.text           /mingw/share/lua/5.3/pl/text.lua
+#gen/pl_stringx.h       pl.stringx        /mingw/share/lua/5.3/pl/stringx.lua
+#gen/pl_path.h          pl.path           /mingw/share/lua/5.3/pl/path.lua
+#gen/pl_class.h         pl.class          /mingw/share/lua/5.3/pl/class.lua
+#gen/pl_lexer.h         pl.lexer          /mingw/share/lua/5.3/pl/lexer.lua
+#gen/pl_pretty.h        pl.pretty         /mingw/share/lua/5.3/pl/pretty.lua
+#gen/pl_Date.h          pl.Date           /mingw/share/lua/5.3/pl/Date.lua
+#gen/pl_List.h          pl.List           /mingw/share/lua/5.3/pl/List.lua
+#gen/pl_Map.h           pl.Map            /mingw/share/lua/5.3/pl/Map.lua
+#gen/pl_MultiMap.h      pl.MultiMap       /mingw/share/lua/5.3/pl/MultiMap.lua
+#gen/pl_OrderedMap.h    pl.OrderedMap     /mingw/share/lua/5.3/pl/OrderedMap.lua
+#gen/pl_Set.h           pl.Set            /mingw/share/lua/5.3/pl/Set.lua
+#gen/pl_luabalanced.h   pl.luabalanced    /mingw/share/lua/5.3/pl/luabalanced.lua
+#gen/pl_xml.h           pl.xml            /mingw/share/lua/5.3/pl/xml.lua
+#gen/pl_sip.h           pl.sip            /mingw/share/lua/5.3/pl/sip.lua
+#gen/pl_app.h           pl.app            /mingw/share/lua/5.3/pl/app.lua
+#gen/pl_array2d.h       pl.array2d        /mingw/share/lua/5.3/pl/array2d.lua
+#gen/pl_comprehension.h pl.comprehension  /mingw/share/lua/5.3/pl/comprehension.lua
+#gen/pl_config.h        pl.config         /mingw/share/lua/5.3/pl/config.lua
+#gen/pl_data.h          pl.data           /mingw/share/lua/5.3/pl/data.lua
+#gen/pl_dir.h           pl.dir            /mingw/share/lua/5.3/pl/dir.lua
+#gen/pl_file.h          pl.file           /mingw/share/lua/5.3/pl/file.lua
+#gen/pl_func.h          pl.func           /mingw/share/lua/5.3/pl/func.lua
+#gen/pl_import_into.h   pl.import_into    /mingw/share/lua/5.3/pl/import_into.lua
+#gen/pl_input.h         pl.input          /mingw/share/lua/5.3/pl/input.lua
+#gen/pl_lapp.h          pl.lapp           /mingw/share/lua/5.3/pl/lapp.lua
+#gen/pl_operator.h      pl.operator       /mingw/share/lua/5.3/pl/operator.lua
+#gen/pl_permute.h       pl.permute        /mingw/share/lua/5.3/pl/permute.lua
+#gen/pl_seq.h           pl.seq            /mingw/share/lua/5.3/pl/seq.lua
+#gen/pl_strict.h        pl.strict         /mingw/share/lua/5.3/pl/strict.lua
+#gen/pl_stringio.h      pl.stringio       /mingw/share/lua/5.3/pl/stringio.lua
+#gen/pl_template.h      pl.template       /mingw/share/lua/5.3/pl/template.lua
+#gen/pl_test.h          pl.test           /mingw/share/lua/5.3/pl/test.lua
+#gen/pl_url.h           pl.url            /mingw/share/lua/5.3/pl/url.lua
+#
+## Top-level module is listed last since it demand-loads everything else
+#gen/pl.h               pl                /mingw/share/lua/5.3/pl/init.lua
 
-# Top-level module is listed last since it demand-loads everything else
-gen/pl.h               pl                /mingw/share/lua/5.3/pl/init.lua
-
+gen/atexit2.h          atexit2           atexit2.lua
 # main routine, rather than glued-on
 gen/main.h             MAIN              main.lua

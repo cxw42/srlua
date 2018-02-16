@@ -10,7 +10,7 @@
 -- derivative work, mention or link to 
 -- https://bitbucket.org/inclinescene/public and http://devwrench.com.
 
-function print_r ( t )
+function print_r ( t )      -- NOTE: global!
     local print_r_cache={}
     local function sub_print_r(t,indent)
         if (print_r_cache[tostring(t)]) then

@@ -37,7 +37,12 @@ while read -r destfn modulename sourcefn ; do
 
     echo -ne '\t' >> "$1"	# beginning of the recipe
     echo "@echo GEN_HEADER $modulename" >> "$1"
-    echo -ne '\t' >> "$1"
+
+    # Syntax-check local files
+    if [[ $modulename != '/'* ]]; then
+        echo -ne '\t' >> "$1"
+        echo "@lua -e 'assert(loadfile(\"$sourcefn\"))'" >> "$1"
+    fi
 
     # gawk script is: give it a variable name;
     #   omit shebang line;
@@ -49,6 +54,7 @@ while read -r destfn modulename sourcefn ; do
     #       emit them as string literals, preserving the line break.
     #   At the end, finish off the string constant.
 
+    echo -ne '\t' >> "$1"
     echo '@gawk -- '"'"'BEGIN { print "static const char *'"$varname"' =" } \
         (NR==1) && ($$0 ~ /^#/) { next } \
         { sub(/^[[:space:]]+/,""); sub(/[[:space:]]+$$/,""); } \

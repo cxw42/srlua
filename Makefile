@@ -9,7 +9,7 @@ LUABIN= $(LUA)/bin
 LUASHARE= $(LUA)/share/lua/$(LUA_VER)
 
 # Set to -g to enable debugging
-G=-g -D_DEBUG
+G=-g -D_DEBUG -O0
 
 # probably no need to change anything below here
 
@@ -36,7 +36,8 @@ WARN= -ansi -pedantic -Wall -Wextra
 INCS= -I$(LUAINC)
 
 OBJS= srlua.o lfs.o checks.o
-GUI_OBJS= gui-srlua.o wmain.o lfs.o gui-srlua-res.o
+GUI_OBJS= gui-srlua.o wmain.o lfs.o gui-srlua-res.o checks.o
+	# TODO statically link fltk4lua
 
 LIBS= luazip.a -L$(LUALIB) -lzip -lz -llua -lm -lrpcrt4 -lole32 #-ldl
 EXPORT= -Wl,--export-all-symbols
@@ -45,7 +46,7 @@ EXPORT= -Wl,--export-all-symbols
 GLUE= glue.exe
 T= a.exe
 S= srlua.exe
-TEST= test.lua
+TEST= test2.zip		#test.lua
 
 # Empty the LUA_PATH and LUA_CPATH before testing so that we don't
 # accidentally pull any modules we haven't expressly bundled in.

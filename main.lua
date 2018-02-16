@@ -1,64 +1,129 @@
 -- main.lua: Bootstrapper for Swiss
 -- Copyright (c) 2018 Chris White.  CC-BY-SA 3.0.
 
-local S = require 'swiss'
---local lfs = require 'lfs'
 local zip = require('brimworks.zip')
 
-print('Payload is',S.payload_fullname,'in dir',S.payload_dir)
+--local atexit2 = require('atexit2')
+
+print('Payload is',swiss.payload_fullname,'in dir',swiss.payload_dir)
+
+atexit2( function()
+    print('Removing extracted payload', swiss.payload_fullname)
+    os.remove(swiss.payload_fullname)
+    --error('test error')   -- for debugging
+end )
 
 local ok, errmsg
 
-local tempdir
-ok, tempdir = pcall(S.make_temp_dir)
+local G_tempdir
+ok, G_tempdir = pcall(swiss.make_temp_dir)
 if ok then
-    print('Created temp dir', tempdir)
+    print('Created temp dir', G_tempdir)
 else
-    error('Could not create temp dir:', tempdir)
+    error('Could not create temp dir:', G_tempdir)
 end
 
-local z = nil -- the zip file that was the payload
+-- Strip trailing delimiter, which causes lfs.attributes() to fail
+function chompdelim(fn)
+    if string.sub(fn, -1) == [[/]] or string.sub(fn, -1) == [[\]] then
+        fn = string.sub(fn, 1, -2)
+    end
+    return fn
+end
 
-local function cleanup()
-    if z then z:close() end
+function rimraf(dirname, verbose)
+    local attrs
 
-    -- TODO remove the contents of S.payload_dir recursively
-    for fn in lfs.dir(tempdir) do
-        if fn ~= '.' and fn ~= '..' then 
-            print('Cleanup',fn)
-            os.remove(fn)
-        end
+    dirname = chompdelim(dirname)
+
+    -- Sanity check: rimraf(filename) just removes that file
+    attrs, errmsg = lfs.attributes(dirname)
+    if not attrs then
+        error('Could not access ' .. dirname .. ': ' .. errmsg)
     end
 
-    lfs.rmdir(tempdir)
+    if attrs.mode ~= 'directory' then
+        if verbose then print('Removing',attrs.mode,dirname) end
+        ok, errmsg = os.remove(dirname)
+        if not ok then error('Could not delete ' .. dirname .. ': ' .. errmsg) end
+        return
+    end
 
-    os.remove(S.payload_fullname)
-end
+    if verbose then print('Removing extracted files in',dirname) end
 
-z, errmsg = zip.open(S.payload_fullname)
+    for fn in lfs.dir(dirname) do
+        if fn ~= '.' and fn ~= '..' then
+            if verbose then print('Processing',fn) end
 
-if not z then
-    cleanup()
-    error('Could not open payload ' .. S.payload_fullname .. ' as ZIP: ' ..
+            -- Need absolute path names since we're not doing chdir
+            fn = dirname .. '/' .. fn
+            attrs, errmsg = lfs.attributes(fn)
+            if not attrs then
+                error('Could not access ' .. fn .. ': ' .. errmsg)
+            end
+
+            if verbose then print('Cleanup', attrs.mode, fn) end
+            if attrs.mode == 'directory' then
+                rimraf(fn, verbose)
+            else
+                ok, errmsg = os.remove(fn)
+                if not ok then error('Could not delete ' .. fn .. ': ' .. errmsg) end
+            end
+        end
+    end --foreach file
+
+    if verbose then print('Removing directory', dirname) end
+    ok, errmsg = lfs.rmdir(dirname)
+    if not ok then error('Could not remove ' .. dirname .. ': ' .. errmsg) end
+end -- rimraf()
+
+atexit2( function ()
+    rimraf(G_tempdir, true)
+end)
+
+local G_z = nil -- the zip file that was the payload
+
+G_z, errmsg = zip.open(swiss.payload_fullname)
+
+if not G_z then
+    error('Could not open payload ' .. swiss.payload_fullname .. ' as ZIP: ' ..
             errmsg)
 end
 
-local last_file_idx = #z
+atexit2(function()
+    print('Closing zip file')
+    G_z:close()
+    G_z = nil
+end)
+
+local last_file_idx = #G_z
 for file_idx=1,last_file_idx do
-    local file, errmsg = z:open(file_idx)
+    local file, errmsg = G_z:open(file_idx)
     if errmsg then
         error('Could not open compressed file ' .. file .. ': ' .. errmsg)
     end
 
-    local stat = z:stat(file_idx)
+    local stat = G_z:stat(file_idx)
+    local destname = chompdelim(G_tempdir .. stat.name)
+    print('Extracting',stat.name)
     local size = stat.size
-    local destfn = S.payload_dir .. stat.name
-    local dat = file:read()
+    if size==0 then
+        print('Creating dir',destname)
+        lfs.mkdir(destname)
+    else
+        print('Extracting file',destname)
+        local dat = file:read(size)
+        local outfd = io.open(destname, 'wb')
+        if not outfd then error('Could not open ' .. destname .. ' for writing') end
+        ok, errmsg = outfd:write(dat)
+        if not ok then error('Could not write ' .. destname .. ': ' .. errmsg) end
+        outfd:close()
+    end
+
     file:close()
-    print('File idx',file_idx)
-    print_r(stat)
 end
 
-cleanup()
+print('Press enter to continue')
+io.read()   -- DEBUG
 
 -- vi: set ts=4 sts=4 sw=4 et ai fo-=ro ff=unix: --

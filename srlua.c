@@ -100,22 +100,20 @@ char payload_fullname[_PATH_MAX+1];
 char payload_dir[_PATH_MAX+1];
 
 /// Create a temporary directory in #payload_dir.
-/// @return throws on failure, or the dir name on success
+/// @return throws on failure, or the dir name plus terminator on success
 int swiss_make_temp_dir(lua_State *L)
 {
     GUID guid;
-    //char str_guid[256];
     if(FAILED(CoCreateGuid(&guid)))
         return luaL_error(L, "Could not create unique directory name");
 
-    //int ok = StringFromGUID2(&guid, str_guid, sizeof(str_guid));
     unsigned char *str_guid;
     RPC_STATUS ok = UuidToString(&guid, &str_guid);
     if(ok != RPC_S_OK)
         return luaL_error(L, "Could not get unique directory name");
 
     char dirname[_PATH_MAX+1];
-    if( (strlen(payload_dir) + 4 + strlen((const char *)str_guid) + 1) > sizeof(dirname)) {
+    if( (strlen(payload_dir) + 5 + strlen((const char *)str_guid) + 1) > sizeof(dirname)) {
         RpcStringFree(&str_guid);
         return luaL_error(L, "Unique directory name is too long (!?)");
     }
@@ -129,6 +127,7 @@ int swiss_make_temp_dir(lua_State *L)
     if(_mkdir(dirname) == -1)
         return luaL_error(L, "Could not create unique directory %s", dirname);
 
+    strcat(dirname,"\\");   // terminator
     lua_pushstring(L, dirname);
     return 1;
 } //swiss_make_temp_dir
@@ -151,38 +150,15 @@ LUALIB_API int luaopen_swiss(lua_State* L)
 
 /*************************************************************************/
 
-#if 0
-typedef struct
-{
-    FILE *f;
-    size_t size;
-    char buff[512];
-} State;
-
-static const char *myget(lua_State *L, void *data, size_t *size)
-{
-    State* s=data;
-    size_t n;
-    (void)L;
-    n=(sizeof(s->buff)<=s->size)? sizeof(s->buff) : s->size;
-    n=fread(s->buff,1,n,s->f);
-    s->size-=n;
-    *size=n;
-    return (n>0) ? s->buff : NULL;
-}
-#endif
-
-
 static void fatal(const char* progname, const char* message)
 {
 #ifdef GUI
     MessageBox(NULL,message,progname,MB_ICONERROR | MB_OK);
 #else
-    fprintf(stderr,"%s: %s\n",progname,message);
+    fprintf(stderr,"error in %s: %s\n",progname,message);
 #endif
     exit(EXIT_FAILURE);
 }
-
 
 /// Extract the payload glued onto the EXE (if any) to a temporary file.
 /// Fills in #dest_filename_buf on success.
@@ -199,7 +175,6 @@ static void extract_payload(lua_State *L,
         luaL_error(L,"cannot %s %s: %s",x,from_filename,strerror(errno)); } while(0)
 
     Glue t;
-    //State S;
     DWORD dw;
     UINT ui;
     FILE *sourcefd=NULL;
@@ -217,7 +192,6 @@ static void extract_payload(lua_State *L,
         luaL_error(L,"no payload found in %s",from_filename);
     }
     if (fseek(sourcefd,t.size1,SEEK_SET)!=0) cannot("seek");
-    //S.f=sourcefd; S.size=t.size2;
 
     // Get temporary path name - modified from
     // https://msdn.microsoft.com/en-us/library/windows/desktop/aa363875(v=vs.85).aspx
@@ -259,21 +233,6 @@ static void extract_payload(lua_State *L,
 
     printf("Extracted payload to %s\n", dest_filename_buf);
 
-#if 0
-    int c;
-    c=getc(sourcefd);
-    if (c=='#')	/* skip shebang line */
-        while (--S.size>0 && c!='\n') c=getc(sourcefd);
-    else
-        ungetc(c,sourcefd);
-#if LUA_VERSION_NUM <= 501
-    if (lua_load(L,myget,&S,"=")!=0) lua_error(L);
-#else
-    if (lua_load(L,myget,&S,"=",NULL)!=0) lua_error(L);
-#endif
-
-#endif
-
     fclose(sourcefd);
     fclose(destfd);
 #undef cannot
@@ -311,7 +270,7 @@ static int pmain(lua_State *L)
             payload_dir, sizeof(payload_dir));
 
     // Tell Lua about the extracted payload by putting values in package "swiss"
-    luaL_requiref(L,"swiss", luaopen_swiss, 0);
+    luaL_requiref(L,"swiss", luaopen_swiss, 1);
     lua_pop(L,1);
 
 #ifndef LSOURCE_HAVE_MAIN
@@ -420,9 +379,15 @@ char* getprog(char *progdir)
 
 static char progbuf[_PATH_MAX+1];
 
+static char initial_argv0[_PATH_MAX+1];
+
+static char errmsg_buf[65536] = {0};
+
 int srlua_main(int argc, char *argv[])
 {
     lua_State *L;
+
+    strncpy(initial_argv0, argv[0], _PATH_MAX);
 
     argv[0] = getprog(progbuf);
     if (argv[0]==NULL) fatal("srlua","cannot locate this executable");
@@ -433,12 +398,32 @@ int srlua_main(int argc, char *argv[])
 
     L = luaL_newstate();
     if (L==NULL) fatal(argv[0],"not enough memory for state");
+
+    int precall_top = lua_gettop(L);
     lua_pushcfunction(L,&pmain);
     lua_pushinteger(L,argc);
     lua_pushlightuserdata(L,argv);
-    if (lua_pcall(L,2,0,0)!=0) {
-        fatal(argv[0],lua_tostring(L,-1));
+    if (lua_pcall(L,2,LUA_MULTRET,0)!=LUA_OK) {
+        strncpy(errmsg_buf, lua_tostring(L, -1), sizeof(errmsg_buf));
+        lua_pop(L, lua_gettop(L) - precall_top);
     }
+
+    // Cleanup
+    precall_top = lua_gettop(L);
+    luaL_dostring(L, "return (require 'atexit2').do_exit()");
+        // Need `return` because the string is run as a chunk, and we need
+        // to pass out the return value from do_exit()
+    if(lua_gettop(L) > precall_top) {
+        const char *rv = lua_tostring(L, -1);   // Empty string, or errmsgs
+        if(rv && *rv) {
+            strncat(errmsg_buf, "\nDuring cleanup, the following occurred:\n", sizeof(errmsg_buf));
+            strncat(errmsg_buf, rv, sizeof(errmsg_buf));
+        }
+        lua_pop(L, lua_gettop(L) - precall_top);
+    }
+
+    if(*errmsg_buf) fatal(argv[0], errmsg_buf);
+
     lua_close(L);
     return EXIT_SUCCESS;
 } //srlua_main()
