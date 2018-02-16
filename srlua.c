@@ -1,10 +1,6 @@
-// Changes by cxw42 Copyright (c) 2018 Chris White.  CC-BY-SA 3.0 or, at your
-// option, any later version under the terms in sec. 4b of CC-BY-SA 3.0.
+// Changes by cxw42 Copyright (c) 2018 Chris White.  CC-BY-SA 3.0 or, at your // option, any later version under the terms in sec. 4b of CC-BY-SA 3.0.
 
 // #includes ///////////////////////////////////////////////////////////// {{{1
-#ifndef _WIN32
-#error We only support WIN32 at the moment.  Sorry!
-#endif
 
 #if defined(_WIN32) || defined(__MINGW32__)
   #define WIN32_LEAN_AND_MEAN
@@ -97,6 +93,20 @@ void load_embedded_module(lua_State *L, const char *name, const char *source)
 #include "gen/gui.h"
 #endif
 
+// Precondition checks
+
+#ifndef _WIN32
+#error We only support WIN32 at the moment.  Sorry!
+#endif
+
+#if defined(GUI) && !defined(LSOURCE_HAVE_GUI)
+#error Need an embedded Lua gui module
+#endif
+
+#ifndef LSOURCE_HAVE_MAIN
+#error "Need a MAIN lua source compiled in"
+#endif
+
 // }}}1
 // Helpers /////////////////////////////////////////////////////////////// {{{1
 
@@ -185,10 +195,16 @@ char* getprog(char *progdir)
 // Package `swiss` /////////////////////////////////////////////////////// {{{1
 
 /// Absolute path to the extracted payload
-char payload_fullname[_PATH_MAX+1];
+static char payload_fullname[_PATH_MAX+1];
 
 /// Directory containing the extracted payload, with trailing separator
-char payload_dir[_PATH_MAX+1];
+static char payload_dir[_PATH_MAX+1];
+
+/// Full path to this EXE.  Filled in by srlua_main().
+static char exe_fullpath[_PATH_MAX+1];
+
+/// argv[0] as provided to us.  Filled in by srlua_main().
+static char initial_argv0[_PATH_MAX+1];
 
 /// Create a temporary directory in #payload_dir.
 /// @return throws on failure, or the dir name plus terminator on success
@@ -232,6 +248,12 @@ LUALIB_API int luaopen_swiss(lua_State* L)
 
     lua_pushstring(L, payload_dir);
     lua_setfield(L, -2, "payload_dir");
+
+    lua_pushstring(L, exe_fullpath);
+    lua_setfield(L, -2, "exe_fullname");
+
+    lua_pushstring(L, initial_argv0);
+    lua_setfield(L, -2, "invoked_as");
 
     lua_pushcfunction(L, swiss_make_temp_dir);
     lua_setfield(L, -2, "make_temp_dir");
@@ -367,10 +389,6 @@ static int pmain(lua_State *L)
     // Tell Lua about compiled-in source modules
     register_lsources(L);
 
-#ifdef GUI
-    load_embedded_module(L, "gui", LSRC_GUI);
-#endif
-
     // Extract the payload into its own file
     extract_payload(L, argv[0], payload_fullname, sizeof(payload_fullname),
             payload_dir, sizeof(payload_dir));
@@ -379,12 +397,20 @@ static int pmain(lua_State *L)
     luaL_requiref(L,"swiss", luaopen_swiss, 1);
     lua_pop(L,1);
 
-#ifndef LSOURCE_HAVE_MAIN
-#error "Need a MAIN lua source compiled in"
+#ifdef GUI
+    // Load GUI.  main is responsible for calling fltk4lua.check()
+    // or similar functions to keep the GUI responsive.
+    load_embedded_module(L, "gui", LSRC_GUI);
+    luaL_dostring(L, "(require 'gui').start()");
+
+    // Replace print() with gui.output
+    luaL_dostring(L, "_G.print = (require 'gui').output");
 #endif
 
-    // Hand off to the compiled-in Lua main program
-    run_main_lsource(L);
+    // Hand off to the compiled-in Lua main program.
+    if(run_main_lsource(L)) {
+        return luaL_error(L, "Error in main: %s", lua_tostring(L, -1));
+    }
 
     return 0;
 } //pmain
@@ -392,8 +418,6 @@ static int pmain(lua_State *L)
 // }}}1
 // C main() ////////////////////////////////////////////////////////////// {{{1
 
-static char progbuf[_PATH_MAX+1];
-static char initial_argv0[_PATH_MAX+1];
 static char errmsg_buf[65536] = {0};
 
 int srlua_main(int argc, char *argv[])
@@ -402,7 +426,7 @@ int srlua_main(int argc, char *argv[])
 
     strncpy(initial_argv0, argv[0], _PATH_MAX);
 
-    argv[0] = getprog(progbuf);
+    argv[0] = getprog(exe_fullpath);
     if (argv[0]==NULL) fatal("srlua","cannot locate this executable");
 
 #ifdef GUI
@@ -435,7 +459,16 @@ int srlua_main(int argc, char *argv[])
         lua_pop(L, lua_gettop(L) - precall_top);
     }
 
+    // TODO move responsibility for deleting the extracted payload from Lua to C - do
+    // it here in case of errors right at the top of main.lua.
+
+    // TODO make this graphical if GUI
     if(*errmsg_buf) fatal(argv[0], errmsg_buf);
+
+#ifdef GUI
+    // Wait for the GUI window to close.  TODO make this optional?
+    luaL_dostring(L,"(require 'fltk4lua').run()");
+#endif
 
     lua_close(L);
     return EXIT_SUCCESS;

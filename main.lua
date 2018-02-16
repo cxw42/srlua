@@ -4,6 +4,8 @@
 -- atexit2, swiss, print_r, lfs are already in the global space
 local zip = require('brimworks.zip')
 
+--error('test error at the top')   -- for debugging
+
 print('Running in ' .. (swiss.gui and 'GUI' or 'console') .. ' mode')
 print('Payload is',swiss.payload_fullname,'in dir',swiss.payload_dir)
 

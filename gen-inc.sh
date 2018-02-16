@@ -26,6 +26,7 @@ while read -r destfn modulename sourcefn conditions ; do
         echo "Using main routine at index $mainidx"
     fi
 
+    # `MANUAL` marks routines that we will include and compile manually.
     if [[ $conditions == 'MANUAL' ]]; then
         is_manual+=('yes')
     else
@@ -34,7 +35,7 @@ while read -r destfn modulename sourcefn conditions ; do
         echo "#include \"$includename\"" >> "$3"
     fi
 
-    varname=`echo "LSRC_$modulename" | tr '.' '_' | tr '[a-z]' '[A-Z]'`
+    varname=$(echo "LSRC_$modulename" | tr '.' '_' | tr '[a-z]' '[A-Z]')
     varnames+=("$varname")
     modulenames+=("$modulename")
 
@@ -72,6 +73,9 @@ while read -r destfn modulename sourcefn conditions ; do
         } \
         END { print ";" }'"'"' $< > $@' >> "$1"
 
+    echo -ne '\t' >> "$1"
+    echo "@echo '#define LSOURCE_HAVE_$(sed 's/[^a-zA-Z]/_/g' <<<"$modulename" | tr 'a-z' 'A-Z')' >> \$@" >> "$1"
+
     echo "srlua.o: $destfn" >> "$1"
     echo "gui-srlua.o: $destfn" >> "$1"
     echo >> "$1"
@@ -98,7 +102,7 @@ echo -e '}\n' >> "$3"
 
 # Output the main code, if any.
 if [[ $mainidx ]]; then
-    echo '#define LSOURCE_HAVE_MAIN' >> "$3"
+    #echo '#define LSOURCE_HAVE_MAIN' >> "$3"
     echo 'int run_main_lsource(lua_State *L) {' >> "$3"
     echo "  return luaL_dostring(L, ${varnames[$mainidx]});" >> "$3"
     echo -e '}\n' >> "$3"
