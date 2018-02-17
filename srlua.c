@@ -120,9 +120,18 @@ static void fatal(const char* progname, const char* message)
     exit(EXIT_FAILURE);
 }
 
+/// Run the given Lua code and report errors.  Like luaL_dostring
+/// plus luaL_error.  Not a lua CFunction.
+static void run_lua(lua_State *L, const char *name, const char *code)
+{
+    if(luaL_dostring(L, code)) {
+        luaL_error(L, "Error %s: %s", name, lua_tostring(L, -1));
+    }
+} //run_lua
+
 /// Get the filename of the running executable.
 /// progdir must have at least _PATH_MAX+1 bytes
-char* getprog(char *progdir)
+static char* getprog(char *progdir)
 {
     int nsize = _PATH_MAX + 1;
     //char* progdir = malloc(nsize * sizeof(char));
@@ -366,6 +375,9 @@ static int pmain(lua_State *L)
     }
     lua_setglobal(L,"arg");
 
+    lua_pushstring(L, initial_argv0);
+    lua_setglobal(L, "InvokedAs");
+
     // Load the standard libraries
     lua_gc(L,LUA_GCSTOP,0);
     luaL_openlibs(L);
@@ -389,6 +401,16 @@ static int pmain(lua_State *L)
     // Tell Lua about compiled-in source modules
     register_lsources(L);
 
+#ifdef GUI
+    // Load GUI.  main is responsible for calling fltk4lua.check()
+    // or similar functions to keep the GUI responsive.
+    load_embedded_module(L, "gui", LSRC_GUI);
+    run_lua(L, "starting GUI", "(require 'gui').start()");
+
+    // Replace print() with gui.output
+    run_lua(L, "updating print()", "_G.print = (require 'gui').output");
+#endif
+
     // Extract the payload into its own file
     extract_payload(L, argv[0], payload_fullname, sizeof(payload_fullname),
             payload_dir, sizeof(payload_dir));
@@ -396,16 +418,6 @@ static int pmain(lua_State *L)
     // Tell Lua about the extracted payload by putting values in package "swiss"
     luaL_requiref(L,"swiss", luaopen_swiss, 1);
     lua_pop(L,1);
-
-#ifdef GUI
-    // Load GUI.  main is responsible for calling fltk4lua.check()
-    // or similar functions to keep the GUI responsive.
-    load_embedded_module(L, "gui", LSRC_GUI);
-    luaL_dostring(L, "(require 'gui').start()");
-
-    // Replace print() with gui.output
-    luaL_dostring(L, "_G.print = (require 'gui').output");
-#endif
 
     // Hand off to the compiled-in Lua main program.
     if(run_main_lsource(L)) {
@@ -450,6 +462,7 @@ int srlua_main(int argc, char *argv[])
     luaL_dostring(L, "return (require 'atexit2').do_exit()");
         // Need `return` because the string is run as a chunk, and we need
         // to pass out the return value from do_exit()
+
     if(lua_gettop(L) > precall_top) {
         const char *rv = lua_tostring(L, -1);   // Empty string, or errmsgs
         if(rv && *rv) {
