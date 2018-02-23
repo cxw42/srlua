@@ -1,6 +1,9 @@
 # Local, since it's not a luarock
 gen/print_r.h          print_r           ./print_r.lua
 
+# Load this one early so other modules can use it
+gen/atexit2.h          atexit2           atexit2.lua
+
 # Penlight.  Note that they must be listed with dependencies before the
 # modules on which they depend, since we are not demand-loading yet.
 
@@ -45,8 +48,6 @@ gen/print_r.h          print_r           ./print_r.lua
 #
 ## Top-level module is listed last since it demand-loads everything else
 #gen/pl.h               pl                /mingw/share/lua/5.3/pl/init.lua
-
-gen/atexit2.h          atexit2           atexit2.lua
 
 # GUI framework - runs first.  Requires atexit2.  MANUAL means it is not
 # automatically loaded by register_lsources().

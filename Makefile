@@ -19,7 +19,7 @@ G=-g -D_DEBUG -O0
 #SHELL = $(warning Building $@)$(OLD_SHELL)
 
 .PHONY: all test regen gui-test gui
-all:	regen test
+all:	regen gui-test
 
 # Make sure our intermediate directory exists, unless we're running clean
 regen:

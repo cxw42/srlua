@@ -3,10 +3,13 @@
 
 local exit_handlers = {}
 
+--- Register #h as an exit handler
 function atexit2(h)  -- GLOBAL
     exit_handlers[#exit_handlers + 1] = h
 end
 
+--- Run the exit handlers.  Always succeeds.
+--- @return An empty string on success, or error messages on failure.
 function do_exit()
     local errmsgs = ''
     for i=#exit_handlers, 1, -1 do

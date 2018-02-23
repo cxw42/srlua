@@ -5,50 +5,38 @@
 
 local fl = require 'fltk4lua'
 local original_print = _G.print
-local window
-local browser
+local window = nil
+local browser = nil
 
 local function start_gui()
-    original_print('Starting GUI')
+    original_print('Starting GUI', InvokedAs)
     window = fl.Window( 640, 480, InvokedAs)
     if not window then error('Could not create window') end
+    do  -- window elements
 
---    local box = fl.Box{ 20, 40, 300, 100, "Hello World!",
---      box = "FL_UP_BOX", labelfont = "FL_HELVETICA_BOLD_ITALIC",
---      labelsize = 36, labeltype = "FL_SHADOW_LABEL"
---    }
---    if not box then error('Could not create box') end
+        -- TODO create a wizard here, and make the browser the first child
+        -- of the wizard.
+        do
+            -- The console output
+            browser = fl.Browser{20, 20, 640-40, 480-100}
+                                    --type='FL_MULTI_BROWSER'
+            if not browser then error('Could not create browser') end
+        end
 
---    Fl_Text_Buffer *buff = new Fl_Text_Buffer();
---     Fl_Text_Display *disp = new Fl_Text_Display(20, 20, 640-40, 480-40, "Display");
---     disp->buffer(buff);
---     win->resizable(*disp);
---     win->show();
---     buff->text("line 0\nline 1\nline 2\n"
---                "line 3\nline 4\nline 5\n"
---                "line 6\nline 7\nline 8\n"
---                "line 9\nline 10\nline 11\n"
---                "line 12\nline 13\nline 14\n"
---                "line 15\nline 16\nline 17\n"
---                "line 18\nline 19\nline 20\n"
---                "line 21\nline 22\nline 23\n");
+        -- A divider
+        local box = fl.Box{ 20, 440, 640-40, 2, "", box = "FL_UP_BOX" }
+        if not box then error('Could not create box') end
 
---    local scroller = fl.Scroll{20, 20, 640-40, 480-40, '', type = fl.BOTH}
---
---    local box = fl.Box{
---        0,0,800,600, "Hello, world!\nLine 2"
---                }
---
---    scroller:end_group()
+        -- Buttons
+        -- TODO
+        local button = fl.Button{ 640-100, 440+10, 40, 20, "Button" }
+        if not box then error('Could not create button') end
 
-    browser = fl.Browser{20, 20, 640-40, 480-40, type='FL_MULTI_BROWSER'}
-    browser:add('foo')
-    browser:add('bar')
-
-    window:end_group()
+        window:end_group()
+    end
 
     window:show()
-    original_print 'GUI running'
+    --original_print 'GUI running'
     fl.check()
 end
 
@@ -69,12 +57,16 @@ local function sprintf(...)
 end --sprintf
 
 local function output(...)
+    if not window then start_gui() end
+
     local s = sprintf(...)
-    -- TODO output to the text_display
-    -- TODO damage the text_display
-    original_print('>',s)    --DEBUG
-    browser:add(s)
-    --fl.check()
+    --original_print('>',s)    --DEBUG
+    -- Split at \n's because the browser doesn't handle them automatically
+    for line in string.gmatch(s, '([^\n]*)') do
+        browser:add(line)
+    end
+    browser.bottomline = browser.nitems
+    fl.check()
 end
 
 return { start = start_gui, output = output, original_print = original_print }
