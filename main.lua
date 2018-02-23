@@ -125,6 +125,11 @@ for file_idx=1,last_file_idx do
     file:close()
 end
 
+-- Don't need an atexit2() call to remove the extracted files, because the
+-- rimraf() above will take care of it.
+
+print('EXE core size', string.format('%x',swiss.exe_core_size))
+
 -- DEBUG
 --print('Press enter to continue')
 --io.read()

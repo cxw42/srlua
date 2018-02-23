@@ -211,6 +211,9 @@ static char exe_fullpath[_PATH_MAX+1];
 /// argv[0] as provided to us.  Filled in by srlua_main().
 static char initial_argv0[_PATH_MAX+1];
 
+/// The size of the EXE without payload
+static int exe_core_size;
+
 /// Create a temporary directory in #payload_dir.
 /// @return throws on failure, or the dir name plus terminator on success
 int swiss_make_temp_dir(lua_State *L)
@@ -274,6 +277,9 @@ LUALIB_API int luaopen_swiss(lua_State* L)
 #endif
     lua_setfield(L, -2, "gui");
 
+    lua_pushinteger(L, exe_core_size);
+    lua_setfield(L, -2, "exe_core_size");
+
     return 1;
 } //luaopen_swiss
 
@@ -308,9 +314,12 @@ static void extract_payload(lua_State *L,
     if (sourcefd==NULL) cannot("open");
     if (fseek(sourcefd,-sizeof(t),SEEK_END)!=0) cannot("seek");
     if (fread(&t,sizeof(t),1,sourcefd)!=1) cannot("read");
+
     if (memcmp(t.sig,GLUESIG,GLUELEN)!=0) {
         luaL_error(L,"no payload found in %s",from_filename);
     }
+
+    exe_core_size = t.size1;
     if (fseek(sourcefd,t.size1,SEEK_SET)!=0) cannot("seek");
 
     // Get temporary path name - modified from
@@ -424,7 +433,8 @@ static int p_load_required_modules(lua_State *L)
     return 0;
 } //p_load_required_modules
 
-/// The main routine, once the required libs have been loaded
+/// The main routine, once the required libs have been loaded.
+/// Runs after the GUI has been started, if in GUI mode.
 static int pmain(lua_State *L)
 {
     int argc=lua_tointeger(L,1);

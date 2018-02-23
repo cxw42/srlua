@@ -18,19 +18,22 @@ local function start_gui()
         -- of the wizard.
         do
             -- The console output
-            browser = fl.Browser{20, 20, 640-40, 480-100}
-                                    --type='FL_MULTI_BROWSER'
+            browser = fl.Browser{20, 20, 640-40, 480-100,
+                                    type='FL_SELECT_BROWSER'}
             if not browser then error('Could not create browser') end
         end
 
         -- A divider
-        local box = fl.Box{ 20, 440, 640-40, 2, "", box = "FL_UP_BOX" }
+        local box = fl.Box{ 20, 420, 640-40, 2, "", box = "FL_UP_BOX" }
         if not box then error('Could not create box') end
 
         -- Buttons
         -- TODO
-        local button = fl.Button{ 640-100, 440+10, 40, 20, "Button" }
-        if not box then error('Could not create button') end
+        local button = fl.Button{ 640-170, 435, 70, 30, "Button" }
+        if not button then error('Could not create button 1') end
+
+        button = fl.Button{ 640-90, 435, 70, 30, "Button" }
+        if not button then error('Could not create button 2') end
 
         window:end_group()
     end
