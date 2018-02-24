@@ -7,20 +7,37 @@ local fl = require 'fltk4lua'
 local original_print = _G.print
 local window = nil
 local browser = nil
+local wizard = nil
 
 local function start_gui()
     original_print('Starting GUI', InvokedAs)
-    window = fl.Window( 640, 480, InvokedAs)
-    if not window then error('Could not create window') end
     do  -- window elements
+        window = assert(fl.Window( 640, 480, InvokedAs))
 
-        -- TODO create a wizard here, and make the browser the first child
-        -- of the wizard.
-        do
-            -- The console output
-            browser = fl.Browser{20, 20, 640-40, 480-100,
-                                    type='FL_SELECT_BROWSER'}
-            if not browser then error('Could not create browser') end
+        do  -- create a wizard
+            local wx, wy, ww, wh = 20, 20, 640-40, 480-100
+            wizard = assert(fl.Wizard(wx, wy, ww, wh))
+
+            do  -- The console output as the first child of the wizard
+                local g = fl.Group(wx, wy, ww, wh)
+                browser = assert(fl.Browser{20, 20, 640-40, 480-100,
+                                        type='FL_SELECT_BROWSER'})
+                g:end_group()
+            end
+
+            do  -- Second page: currently a placeholder
+                local g = fl.Group(wx, wy, ww, wh)
+
+                local o = fl.Input( wx+20, wy+20, ww-40, wh-40, "Welcome" )
+                o.type = "FL_MULTILINE_OUTPUT"
+                o.labelsize = 20
+                o.align = fl.ALIGN_TOP + fl.ALIGN_LEFT
+                o.value = "This is the second page"
+
+                g:end_group()
+            end
+
+            wizard:end_group()
         end
 
         -- A divider
@@ -28,15 +45,22 @@ local function start_gui()
         if not box then error('Could not create box') end
 
         -- Buttons
-        -- TODO
-        local button = fl.Button{ 640-170, 435, 70, 30, "Button" }
-        if not button then error('Could not create button 1') end
+        local button
 
-        button = fl.Button{ 640-90, 435, 70, 30, "Button" }
-        if not button then error('Could not create button 2') end
+        -- Cancel
+        button = assert(fl.Button{ 20, 435, 80, 30, "&Cancel" })
+        function button:callback() window:hide() end
 
-        window:end_group()
+        -- Prev
+        button = assert(fl.Button{ 640-200, 435, 80, 30, "@< &Previous" })
+        function button:callback() wizard:prev() end
+
+        -- Next
+        button = assert(fl.Button{ 640-100, 435, 80, 30, "&Next @>" })
+        function button:callback() wizard:next() end
+
     end
+    window:end_group()
 
     window:show()
     --original_print 'GUI running'
