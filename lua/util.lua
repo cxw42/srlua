@@ -30,8 +30,20 @@ end --chompdelim()
 --- @input cbk {function} The callback.  It is called as:
 ---         cbk(filename {string}, is_dir {boolean}, attributes, verbose)
 ---     traverse_dir() does not check for errors or pcall the callback.
-local function traverse_dir(dirname, cbk, verbose)
-    checks('string','function','?boolean')
+--- @input options {table} Options.  Permissible fields are:
+---     verbose {boolean=false}     Print reports as you go
+---     descend {boolean=true}      Descend more than one level
+local function traverse_dir(dirname, cbk, options)
+    -- Process options
+    checks('string','function','?table')
+    options = options or {}
+    local verbose = not not options.verbose
+    local descend
+    if options.descend ~= nil then
+        descend = not not options.descend
+    else
+        descend = true
+    end
 
     dirname = chompdelim(dirname)
 
@@ -54,10 +66,15 @@ local function traverse_dir(dirname, cbk, verbose)
             fn = dirname .. '/' .. fn
             local attrs = assert2('Could not access ' .. fn, lfs.attributes(fn))
 
-            if attrs.mode == 'directory' then
-                traverse_dir(fn, cbk, verbose)
-            else
+            if attrs.mode ~= 'directory' then
                 cbk(fn, false, attrs, verbose)
+            else
+                if descend then
+                    traverse_dir(fn, cbk, options)
+                elseif verbose then
+                    print('  Not descending into ' .. fn)
+                --else nothing to do --- no descend, no report
+                end
             end
         end
     end --foreach file
@@ -80,7 +97,7 @@ local function rimraf(dirname, verbose)
         end
     end --rimraf_cbk()
 
-    traverse_dir(dirname, rimraf_cbk, verbose)
+    traverse_dir(dirname, rimraf_cbk, verbose and {verbose = true} or nil)
 
 end -- rimraf()
 

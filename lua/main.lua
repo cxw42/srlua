@@ -37,9 +37,19 @@ util.unzip_all(M_tempdir, swiss.payload_fullname, true)
 -- rimraf() above will take care of it.
 
 -- Find a Lua file in the extracted payload to run -------------------
-local M_lua_filename
+local M_lua_filenames = {}
 
+local function save_filename(fn, is_dir) --, unused_addrs, verbose
+    if is_dir then return end
+    if fn:find("%.[Ll][Uu][Aa]$") then
+        table.insert(M_lua_filenames, fn)
+    end
+end --save_filename()
 
+util.traverse_dir(M_tempdir, save_filename, {verbose=true})
+
+table.sort(M_lua_filenames)
+print_r{["Found filenames"]=M_lua_filenames}
 
 -- Run the Lua file from the payload ---------------------------------
 -- Note: cwd is still the directory under which the EXE was run.
@@ -51,7 +61,10 @@ end
 package.path = package.path ..  M_tempdir .. '?.lua'
 print('PATH', package.path)
 
--- TODO run the file
+-- run the file
+if #M_lua_filenames > 0 then
+    dofile(M_lua_filenames[1])
+end
 
 -- ========================================================================
 -- DEBUG

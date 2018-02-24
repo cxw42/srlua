@@ -32,13 +32,7 @@ local function close_frame(stack, e)
       if has_close then
         v:close()
       elseif v then
-        --print('Disposing value', debug.traceback())
-        --print 'Value'
-        --print_r(v)
-        --print 'Metatable'
-        --print_r(mt)
-        v(e)
-        --print('Successful')
+        v(e)  -- TODO?  pcall and keep going, with errors propagated another way?
       -- else v was falsy, so do nothing.
       end
     end -- v~=frame_marker

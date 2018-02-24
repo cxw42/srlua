@@ -1,22 +1,30 @@
-0  ICON  "lua_powered.ico"
+0  ICON  "installer-icon-tango.ico"
 
 1 VERSIONINFO
- FILEVERSION 5,2,0,0
- PRODUCTVERSION 5,2,0,0
+ FILEVERSION 0,1,0,0
+ PRODUCTVERSION 0,1,0,0
 BEGIN
     BLOCK "StringFileInfo"
     BEGIN
-        BLOCK "040904b0"
+        BLOCK "040904e4"
+
         BEGIN
-            VALUE "Comments", "www.luadist.org\0"
-            VALUE "CompanyName", "LuaDist.org\0"
-            VALUE "FileDescription", "Lua executable script wrapper\0"
-            VALUE "FileVersion", "5.2.0\0"
-            VALUE "LegalCopyright", "Copyright © 1994-2011 Lua.org, PUC-Rio.\0"
-            VALUE "OriginalFilename", "srlua.exe\0"
-            VALUE "ProductName", "srLua - Lua executable script wrapper\0"
-            VALUE "ProductVersion", "5.2.0\0"
-            VALUE "PrivateBuild", "Built using LuaDist\0"
+            //VALUE "Comments", "www.luadist.org\0"
+            VALUE "CompanyName", "devwrench.com\0"
+            VALUE "FileDescription", "Lua-based installer\0"
+            VALUE "FileVersion", "0.1\0"
+            VALUE "InternalName", "swiss.exe\0"
+            VALUE "LegalCopyright", "Copyright © 2018 Chris White.  Portions based on lauxlib, copyright © 1994-2017 Lua.org, PUC-Rio, and on srlua by Luiz Henrique de Figueiredo, public domain.\0"
+            VALUE "OriginalFilename", "gui-a.exe\0"
+            VALUE "ProductName", "swiss - scriptable win32 installer system\0"
+            VALUE "ProductVersion", "0.1\0"
+            //VALUE "PrivateBuild", "Built using LuaDist\0"
         END
     END
 END
+
+// Thanks to http://mingw-users.1079350.n2.nabble.com/Bad-file-number-tp4621068p4621727.html
+// and https://msdn.microsoft.com/en-us/library/windows/desktop/ms648009(v=vs.85).aspx
+2 24 srlua.manifest
+
+// vi: set ts=4 sts=4 sw=4 et ai ff=dos: //
