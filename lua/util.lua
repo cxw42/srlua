@@ -23,51 +23,65 @@ local function chompdelim(str, delim)
     return str
 end --chompdelim()
 
---- rm -rf #dirname
-local function rimraf(dirname, verbose)
-    local attrs
+--- Recursively traverse #dirname, calling #cbk for each entry.
+--- '.' and '..' are ignored.  Visits a directory's children before
+--- visiting that directory (TODO make an option for this?).
+--- @input dirname {string} the directory to traverse
+--- @input cbk {function} The callback.  It is called as:
+---         cbk(filename {string}, is_dir {boolean}, attributes, verbose)
+---     traverse_dir() does not check for errors or pcall the callback.
+local function traverse_dir(dirname, cbk, verbose)
+    checks('string','function','?boolean')
 
     dirname = chompdelim(dirname)
 
-    -- Sanity check: rimraf(filename) just removes that file
-    attrs, errmsg = lfs.attributes(dirname)
-    if not attrs then
-        error('Could not access ' .. dirname .. ': ' .. errmsg)
-    end
+    -- Sanity check: don't descend dirname if it's actually a file
+    local dirname_attrs = assert2('Could not access ' .. dirname, lfs.attributes(dirname))
 
-    if attrs.mode ~= 'directory' then
-        if verbose then print('Removing',attrs.mode,dirname) end
-        ok, errmsg = os.remove(dirname)
-        if not ok then error('Could not delete ' .. dirname .. ': ' .. errmsg) end
+    if dirname_attrs.mode ~= 'directory' then
+        if verbose then print('Processing ' .. dirname_attrs.mode .. ' ' .. dirname) end
+        cbk(dirname, false, dirname_attrs, verbose)
         return
     end
 
-    if verbose then print('Removing extracted files in',dirname) end
+    if verbose then print('Descending into ' .. dirname) end
 
     for fn in lfs.dir(dirname) do
         if fn ~= '.' and fn ~= '..' then
-            if verbose then print('Processing',fn) end
+            if verbose then print('Processing ' .. fn) end
 
-            -- Need absolute path names since we're not doing chdir
+            -- Need path names rooted at . since we're not doing chdir
             fn = dirname .. '/' .. fn
-            attrs, errmsg = lfs.attributes(fn)
-            if not attrs then
-                error('Could not access ' .. fn .. ': ' .. errmsg)
-            end
+            local attrs = assert2('Could not access ' .. fn, lfs.attributes(fn))
 
-            if verbose then print('Cleanup', attrs.mode, fn) end
             if attrs.mode == 'directory' then
-                rimraf(fn, verbose)
+                traverse_dir(fn, cbk, verbose)
             else
-                ok, errmsg = os.remove(fn)
-                if not ok then error('Could not delete ' .. fn .. ': ' .. errmsg) end
+                cbk(fn, false, attrs, verbose)
             end
         end
     end --foreach file
 
-    if verbose then print('Removing directory', dirname) end
-    ok, errmsg = lfs.rmdir(dirname)
-    if not ok then error('Could not remove ' .. dirname .. ': ' .. errmsg) end
+    if verbose then print('Processing directory ' .. dirname) end
+    cbk(dirname, true, dirname_attrs, verbose)
+end -- traverse_dir()
+
+--- rm -rf #dirname
+local function rimraf(dirname, verbose)
+    -- TODO
+    local function rimraf_cbk(fn, is_dir, attrs, verbose)
+        if verbose then
+            print('Removing ' .. (is_dir and 'directory' or 'file') .. ' ' .. fn)
+        end
+        if is_dir then
+            assert2('Could not remove dir ' .. fn, lfs.rmdir(fn))
+        else
+            assert2('Could not delete file ' .. fn, os.remove(fn))
+        end
+    end --rimraf_cbk()
+
+    traverse_dir(dirname, rimraf_cbk, verbose)
+
 end -- rimraf()
 
 --- Do what glue.c does: make a new EXE that has the given payload
@@ -143,6 +157,7 @@ return {
     rimraf = rimraf,
     make_payload_runner = make_payload_runner,
     unzip_all = unzip_all,
+    traverse_dir = traverse_dir,
 }
 
 -- vi: set ts=4 sts=4 sw=4 et ai fo-=ro ff=unix: --
