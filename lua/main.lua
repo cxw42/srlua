@@ -1,4 +1,4 @@
--- main.lua: Bootstrapper for Swiss
+-- main.lua: Bootstrapper for Swiss.  Runs once the payload has been extracted.
 -- Copyright (c) 2018 Chris White.  CC-BY-SA 3.0.
 
 -- atexit2, swiss, print_r, lfs are already in the global space
@@ -18,68 +18,52 @@ end )
 
 local ok, errmsg
 
-local G_tempdir
-ok, G_tempdir = pcall(swiss.make_temp_dir)
+-- Extract the payload to a temporary directory ----------------------
+local M_tempdir
+ok, M_tempdir = pcall(swiss.make_temp_dir)
 if ok then
-    print('Created temp dir', G_tempdir)
+    print('Created temp dir', M_tempdir)
 else
-    error('Could not create temp dir:', G_tempdir)
+    error('Could not create temp dir:', M_tempdir)
 end
 
 atexit2( function ()
-    util.rimraf(G_tempdir, true)
+    util.rimraf(M_tempdir, true)
 end)
 
-local G_z = nil -- the zip file that was the payload
-
-G_z, errmsg = zip.open(swiss.payload_fullname)
-
-if not G_z then
-    error('Could not open payload ' .. swiss.payload_fullname .. ' as ZIP: ' ..
-            errmsg)
-end
-
-atexit2(function()
-    print('Closing zip file')
-    G_z:close()
-    G_z = nil
-end)
-
-local last_file_idx = #G_z
-for file_idx=1,last_file_idx do
-    local file, errmsg = G_z:open(file_idx)
-    if errmsg then
-        error('Could not open compressed file ' .. file .. ': ' .. errmsg)
-    end
-
-    local stat = G_z:stat(file_idx)
-    local destname = util.chompdelim(G_tempdir .. stat.name)
-    print('Extracting',stat.name)
-    local size = stat.size
-    if size==0 then
-        print('Creating dir',destname)
-        lfs.mkdir(destname)
-    else
-        print('Extracting file',destname)
-        local dat = file:read(size)
-        local outfd = io.open(destname, 'wb')
-        if not outfd then error('Could not open ' .. destname .. ' for writing') end
-        ok, errmsg = outfd:write(dat)
-        if not ok then error('Could not write ' .. destname .. ': ' .. errmsg) end
-        outfd:close()
-    end
-
-    file:close()
-end
+util.unzip_all(M_tempdir, swiss.payload_fullname, true)
 
 -- Don't need an atexit2() call to remove the extracted files, because the
 -- rimraf() above will take care of it.
 
+-- Find a Lua file in the extracted payload to run -------------------
+local M_lua_filename
+
+
+
+-- Run the Lua file from the payload ---------------------------------
+-- Note: cwd is still the directory under which the EXE was run.
+
+-- Add the temp dir to the package path
+if package.path and package.path:len()>0 then
+    package.path = util.chompdelim(package.path, ';') .. ';'
+end
+package.path = package.path ..  M_tempdir .. '?.lua'
+print('PATH', package.path)
+
+-- TODO run the file
+
 -- ========================================================================
 -- DEBUG
 --print('EXE core size', string.format('%d %x',swiss.exe_core_size, swiss.exe_core_size))
-util.make_payload_runner('extracted-exe.bin', 'test2.zip')
-print('Made extracted-exe.bin')
+--util.make_payload_runner('extracted-exe.bin', 'test2.zip')
+--print('Made extracted-exe.bin')
+--
+--if swiss.gui then
+--    local gui = require 'gui'
+--    print('Window',gui.window())
+--    print('Wizard',gui.wizard())
+--end
 --print('Press enter to continue')
 --io.read()
 

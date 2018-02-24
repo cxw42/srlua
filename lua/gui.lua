@@ -5,9 +5,9 @@
 
 local fl = require 'fltk4lua'
 local original_print = _G.print
-local window = nil
-local browser = nil
-local wizard = nil
+local M_window = nil
+local M_browser = nil
+local M_wizard = nil
 
 -- Forward declarations
 local btn_wizard_next = nil     -- "Next" button
@@ -20,13 +20,13 @@ local rb_license_accept = nil   -- "Accept" radio button
 --- @input b {mixed} Prev button, Next button, or false.
 ---                  If false, do not move next or prev.
 local function wiz_next_prev_cb(b)
-    local curr = wizard.value
+    local curr = M_wizard.value
 
     if curr == screen_console then  -- console: first page
         btn_wizard_next:activate()
         btn_wizard_prev:deactivate()
         if b == btn_wizard_next then
-            wizard:next()
+            M_wizard:next()
         end
 
     else    -- not the console
@@ -37,9 +37,9 @@ local function wiz_next_prev_cb(b)
             btn_wizard_next:deactivate()
         end
         if b == btn_wizard_next and rb_license_accept.value then
-            wizard:next()
+            M_wizard:next()
         elseif b == btn_wizard_prev then
-            wizard:prev()
+            M_wizard:prev()
         end
     end
 
@@ -54,16 +54,16 @@ end --wiz_next_prev_cb()
 local function start_gui()
     original_print('Starting GUI', InvokedAs)
     do  -- window elements
-        window = assert(fl.Window( 640, 480, InvokedAs))
+        M_window = assert(fl.Window( 640, 480, InvokedAs))
 
         do  -- create a wizard
             local wx, wy, ww, wh = 20, 20, 640-40, 480-100
-            wizard = assert(fl.Wizard{wx, wy, ww, wh, box='FL_NO_BOX'})
+            M_wizard = assert(fl.Wizard{wx, wy, ww, wh, box='FL_NO_BOX'})
 
             do  -- The console output as the first child of the wizard
                 local g = assert(fl.Group(wx, wy, ww, wh))
                 screen_console = g
-                browser = assert(fl.Browser{20, 20, 640-40, 480-100,
+                M_browser = assert(fl.Browser{20, 20, 640-40, 480-100,
                                         type='FL_SELECT_BROWSER'})
                 g:end_group()
             end
@@ -116,7 +116,7 @@ local function start_gui()
                 g:end_group()
             end
 
-            wizard:end_group()
+            M_wizard:end_group()
         end
 
         -- A divider
@@ -127,7 +127,7 @@ local function start_gui()
 
         -- Cancel
         local button = assert(fl.Button{ 20, 435, 80, 30, "&Cancel",
-            callback = function() window:hide() end
+            callback = function() M_window:hide() end
         })
 
         -- Prev
@@ -142,11 +142,11 @@ local function start_gui()
         btn_wizard_next:deactivate()     -- Until the license agreement is accepted
 
     end
-    window:end_group()
+    M_window:end_group()
 
-    wizard.value = screen_license   -- start at the license screen
+    M_wizard.value = screen_license   -- start at the license screen
 
-    window:show()
+    M_window:show()
     --original_print 'GUI running'
     fl.check()
 end
@@ -168,18 +168,24 @@ local function sprintf(...)
 end --sprintf
 
 local function output(...)
-    if not window then start_gui() end
+    if not M_window then start_gui() end
 
     local s = sprintf(...)
     --original_print('>',s)    --DEBUG
     -- Split at \n's because the browser doesn't handle them automatically
     for line in string.gmatch(s, '([^\n]*)') do
-        browser:add(line)
+        M_browser:add(line)
     end
-    browser.bottomline = browser.nitems
+    M_browser.bottomline = M_browser.nitems
     fl.check()
 end
 
-return { start = start_gui, output = output, original_print = original_print }
+return {
+    window = function() return M_window end,
+    wizard = function() return M_wizard end,
+    start = start_gui,
+    output = output,
+    original_print = original_print
+}
 
 -- vi: set ts=4 sts=4 sw=4 et ai fo-=ro ff=unix: --

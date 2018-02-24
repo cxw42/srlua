@@ -4,12 +4,23 @@
 raii = require 'raii'
 local scoped, pcall = raii.scoped, raii.pcall
 
---- Strip trailing delimiter, which causes lfs.attributes() to fail
-local function chompdelim(fn)
-    if string.sub(fn, -1) == [[/]] or string.sub(fn, -1) == [[\]] then
-        fn = string.sub(fn, 1, -2)
+--- Strip trailing delimiter.  E.g., lfs.attributes() can't handle them on
+--- filenames.  Default delimiter is either '/' or '\\'.
+--- @input str {string} The fil
+local function chompdelim(str, delim)
+    checks('string','?string')
+    local has_delim, delim_len
+    if not delim then
+        delim_len = 1
+        has_delim = ( str:sub(-1) == [[/]] or str:sub(-1) == [[\]] )
+    else
+        delim_len = delim:len()
+        has_delim = ( str:sub(-delim_len) == delim )
     end
-    return fn
+    if has_delim then
+        str = str:sub(1, -(delim_len+1))
+    end
+    return str
 end --chompdelim()
 
 --- rm -rf #dirname
@@ -85,10 +96,53 @@ local make_payload_runner = raii(function(dest_filename, payload_filename)
     outfd:write(swiss.make_glue_record(swiss.exe_core_size, payload_len))
 end) --make_payload_runner()
 
+--- Unzip file #file_idx from open brimworks.zip #zipfile into #dest_dir.
+--- @input zipfile {brimworks.zip}
+--- @input file_idx {number} Must be a valid index in #zipfile
+--- @input dest_dir {string} Must end with a terminator ('/' or '\\')
+local unzip_file = raii(function(zipfile, file_idx, dest_dir, verbose)
+    local srcfd = scoped(assert(zipfile:open(file_idx)))
+
+    local stat = zipfile:stat(file_idx)
+    local size = stat.size
+    local destname = chompdelim(dest_dir .. stat.name)
+    if verbose then print('Extracting ' .. stat.name) end
+
+    if size==0 then     -- directory
+        if verbose then print('Creating dir ' .. destname) end
+        lfs.mkdir(destname)
+
+    else                -- file
+        if verbose then print('Extracting file ' .. destname) end
+        local outfd = scoped(assert(io.open(destname, 'wb')))
+        local dat = assert(srcfd:read(size))
+        assert(outfd:write(dat))
+    end
+    -- raii closes srcfd and outfd
+end) --unzip_file
+
+--- Unzip everything in ZIP file #zip_filename into #dest_dir
+local unzip_all = raii(function(dest_dir, zip_filename, verbose)
+    checks('string','string', '?boolean')
+    local zip = require('brimworks.zip')
+
+    dest_dir = chompdelim(dest_dir) .. '/'  -- regularize
+
+    local zipfile = scoped(assert(zip.open(zip_filename)))
+    print_r({zipfile=zipfile})
+    if verbose then print('Extracting ZIP '..zip_filename) end
+
+    for file_idx=1,#zipfile do
+        unzip_file(zipfile, file_idx, dest_dir, verbose)
+    end --foreach file in the ZIP
+
+end) --unzip_all()
+
 return {
     chompdelim = chompdelim,
     rimraf = rimraf,
-    make_payload_runner = make_payload_runner
+    make_payload_runner = make_payload_runner,
+    unzip_all = unzip_all,
 }
 
 -- vi: set ts=4 sts=4 sw=4 et ai fo-=ro ff=unix: --

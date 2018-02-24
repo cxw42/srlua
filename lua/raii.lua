@@ -11,7 +11,15 @@ local frame_marker = {} -- unique value delimiting stack frames
 
 local running = coroutine.running
 
+--- Return the "close" member of #0, if there is one.
+--- A separate function so you can use pcall.  E.g., `(42).foo` will
+--- error() out if there is no metatable for numbers.
+local function get_close(o)
+  return o.close
+end
+
 -- Close current stack frame for RAII, releasing all objects.
+-- @input e {optional} Error object
 local function close_frame(stack, e)
   assert(#stack ~= 0, 'RAII stack empty')
   for i=#stack,1,-1 do  -- release in reverse order of acquire
@@ -20,19 +28,22 @@ local function close_frame(stack, e)
       break
     else
       -- note: assume finalizer never raises error
-      if type(v) == "table" and v.close then
+      local has_close = pcall(get_close, v)
+      if has_close then
         v:close()
-      else
-        local mt = getmetatable(v)
-        if mt and mt.close then   -- e.g., FILE* objects, which are userdata
-          v:close()
-        else
-          v(e)
-        end
+      elseif v then
+        --print('Disposing value', debug.traceback())
+        --print 'Value'
+        --print_r(v)
+        --print 'Metatable'
+        --print_r(mt)
+        v(e)
+        --print('Successful')
+      -- else v was falsy, so do nothing.
       end
-    end
-  end
-end
+    end -- v~=frame_marker
+  end --foreach stack item
+end --close_frame()
 
 local function helper1(stack, ...) close_frame(stack); return ... end
 
