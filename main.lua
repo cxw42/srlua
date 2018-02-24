@@ -3,6 +3,7 @@
 
 -- atexit2, swiss, print_r, lfs are already in the global space
 local zip = require('brimworks.zip')
+local util = require('util')
 
 --error('test error at the top')   -- for debugging
 
@@ -25,62 +26,8 @@ else
     error('Could not create temp dir:', G_tempdir)
 end
 
--- Strip trailing delimiter, which causes lfs.attributes() to fail
-function chompdelim(fn)
-    if string.sub(fn, -1) == [[/]] or string.sub(fn, -1) == [[\]] then
-        fn = string.sub(fn, 1, -2)
-    end
-    return fn
-end
-
-function rimraf(dirname, verbose)
-    local attrs
-
-    dirname = chompdelim(dirname)
-
-    -- Sanity check: rimraf(filename) just removes that file
-    attrs, errmsg = lfs.attributes(dirname)
-    if not attrs then
-        error('Could not access ' .. dirname .. ': ' .. errmsg)
-    end
-
-    if attrs.mode ~= 'directory' then
-        if verbose then print('Removing',attrs.mode,dirname) end
-        ok, errmsg = os.remove(dirname)
-        if not ok then error('Could not delete ' .. dirname .. ': ' .. errmsg) end
-        return
-    end
-
-    if verbose then print('Removing extracted files in',dirname) end
-
-    for fn in lfs.dir(dirname) do
-        if fn ~= '.' and fn ~= '..' then
-            if verbose then print('Processing',fn) end
-
-            -- Need absolute path names since we're not doing chdir
-            fn = dirname .. '/' .. fn
-            attrs, errmsg = lfs.attributes(fn)
-            if not attrs then
-                error('Could not access ' .. fn .. ': ' .. errmsg)
-            end
-
-            if verbose then print('Cleanup', attrs.mode, fn) end
-            if attrs.mode == 'directory' then
-                rimraf(fn, verbose)
-            else
-                ok, errmsg = os.remove(fn)
-                if not ok then error('Could not delete ' .. fn .. ': ' .. errmsg) end
-            end
-        end
-    end --foreach file
-
-    if verbose then print('Removing directory', dirname) end
-    ok, errmsg = lfs.rmdir(dirname)
-    if not ok then error('Could not remove ' .. dirname .. ': ' .. errmsg) end
-end -- rimraf()
-
 atexit2( function ()
-    rimraf(G_tempdir, true)
+    util.rimraf(G_tempdir, true)
 end)
 
 local G_z = nil -- the zip file that was the payload
@@ -106,7 +53,7 @@ for file_idx=1,last_file_idx do
     end
 
     local stat = G_z:stat(file_idx)
-    local destname = chompdelim(G_tempdir .. stat.name)
+    local destname = util.chompdelim(G_tempdir .. stat.name)
     print('Extracting',stat.name)
     local size = stat.size
     if size==0 then
@@ -128,24 +75,11 @@ end
 -- Don't need an atexit2() call to remove the extracted files, because the
 -- rimraf() above will take care of it.
 
--- Note: this successfully extracts the compiled srlua.exe, without payload.
-print('EXE core size', string.format('%d %x',swiss.exe_core_size, swiss.exe_core_size))
-do
-    local infd = io.open(swiss.exe_fullname, 'rb')
-    local dat = infd:read(swiss.exe_core_size)
-    infd:close()
-
-    local outfd = io.open('extracted-exe.bin', 'wb')
-    outfd:write(dat)
-
-    -- TODO write test2.zip as the payload
-
-    outfd:write(swiss.make_glue_record(0x55, 0xaa))
-    outfd:close()
-    print('Wrote extracted-exe.bin')
-end
-
+-- ========================================================================
 -- DEBUG
+--print('EXE core size', string.format('%d %x',swiss.exe_core_size, swiss.exe_core_size))
+util.make_payload_runner('extracted-exe.bin', 'test2.zip')
+print('Made extracted-exe.bin')
 --print('Press enter to continue')
 --io.read()
 

@@ -249,7 +249,7 @@ int swiss_make_temp_dir(lua_State *L)
 
 /// Make a glue record.
 /// Inputs: size of EXE, size of payload
-/// Output: glue record, as a string
+/// Output: glue record, as a string.  Throws on error.
 int swiss_make_glue_record(lua_State *L)
 {
     Glue g = { GLUESIG, 0, 0 };
