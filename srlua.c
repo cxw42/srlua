@@ -247,6 +247,23 @@ int swiss_make_temp_dir(lua_State *L)
     return 1;
 } //swiss_make_temp_dir
 
+/// Make a glue record.
+/// Inputs: size of EXE, size of payload
+/// Output: glue record, as a string
+int swiss_make_glue_record(lua_State *L)
+{
+    Glue g = { GLUESIG, 0, 0 };
+    lua_Number size1n = luaL_checknumber(L, 1);
+    if(size1n<0) return luaL_error(L, "size1 must be positive");
+    lua_Number size2n = luaL_checknumber(L, 2);
+    if(size2n<0) return luaL_error(L, "size1 must be positive");
+
+    g.size1 = size1n;   // let it truncate
+    g.size2 = size2n;   // let it truncate
+    lua_pushlstring(L, (char *)&g, sizeof(g));
+    return 1;
+} //swiss_make_glue_record()
+
 /// Load package `swiss`
 LUALIB_API int luaopen_swiss(lua_State* L)
 {
@@ -269,6 +286,9 @@ LUALIB_API int luaopen_swiss(lua_State* L)
 
     lua_pushcfunction(L, swiss_make_temp_dir);
     lua_setfield(L, -2, "make_temp_dir");
+
+    lua_pushcfunction(L, swiss_make_glue_record);
+    lua_setfield(L, -2, "make_glue_record");
 
 #ifdef GUI
     lua_pushboolean(L, TRUE);

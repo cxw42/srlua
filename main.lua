@@ -128,7 +128,22 @@ end
 -- Don't need an atexit2() call to remove the extracted files, because the
 -- rimraf() above will take care of it.
 
-print('EXE core size', string.format('%x',swiss.exe_core_size))
+-- Note: this successfully extracts the compiled srlua.exe, without payload.
+print('EXE core size', string.format('%d %x',swiss.exe_core_size, swiss.exe_core_size))
+do
+    local infd = io.open(swiss.exe_fullname, 'rb')
+    local dat = infd:read(swiss.exe_core_size)
+    infd:close()
+
+    local outfd = io.open('extracted-exe.bin', 'wb')
+    outfd:write(dat)
+
+    -- TODO write test2.zip as the payload
+
+    outfd:write(swiss.make_glue_record(0x55, 0xaa))
+    outfd:close()
+    print('Wrote extracted-exe.bin')
+end
 
 -- DEBUG
 --print('Press enter to continue')
