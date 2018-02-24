@@ -9,6 +9,48 @@ local window = nil
 local browser = nil
 local wizard = nil
 
+-- Forward declarations
+local btn_wizard_next = nil     -- "Next" button
+local btn_wizard_prev = nil     -- "Previous" button
+local screen_console = nil      -- Group holding the console browser
+local screen_license = nil      -- Group holding the license screen
+local rb_license_accept = nil   -- "Accept" radio button
+
+--- Next/Previous button for the wizard.
+--- @input b {mixed} Prev button, Next button, or false.
+---                  If false, do not move next or prev.
+local function wiz_next_prev_cb(b)
+    local curr = wizard.value
+
+    if curr == screen_console then  -- console: first page
+        btn_wizard_next:activate()
+        btn_wizard_prev:deactivate()
+        if b == btn_wizard_next then
+            wizard:next()
+        end
+
+    else    -- not the console
+        btn_wizard_prev:activate()
+        if rb_license_accept.value then
+            btn_wizard_next:activate()
+        else
+            btn_wizard_next:deactivate()
+        end
+        if b == btn_wizard_next and rb_license_accept.value then
+            wizard:next()
+        elseif b == btn_wizard_prev then
+            wizard:prev()
+        end
+    end
+
+    -- Update tabs based on where we are now
+    fl.check()
+    if b then
+        wiz_next_prev_cb(false)     -- false => no infinite recursion
+    end
+
+end --wiz_next_prev_cb()
+
 local function start_gui()
     original_print('Starting GUI', InvokedAs)
     do  -- window elements
@@ -16,23 +58,60 @@ local function start_gui()
 
         do  -- create a wizard
             local wx, wy, ww, wh = 20, 20, 640-40, 480-100
-            wizard = assert(fl.Wizard(wx, wy, ww, wh))
+            wizard = assert(fl.Wizard{wx, wy, ww, wh, box='FL_NO_BOX'})
 
             do  -- The console output as the first child of the wizard
-                local g = fl.Group(wx, wy, ww, wh)
+                local g = assert(fl.Group(wx, wy, ww, wh))
+                screen_console = g
                 browser = assert(fl.Browser{20, 20, 640-40, 480-100,
                                         type='FL_SELECT_BROWSER'})
                 g:end_group()
             end
 
-            do  -- Second page: currently a placeholder
-                local g = fl.Group(wx, wy, ww, wh)
+            do  -- Second page: License agreement
+                local g = assert(fl.Group{wx, wy, ww, wh, box='FL_NO_BOX'})
+                screen_license = g
 
-                local o = fl.Input( wx+20, wy+20, ww-40, wh-40, "Welcome" )
+                local o = assert(
+                    fl.Input{ wx, wy+25, ww, wh-100, "License agreement",})
                 o.type = "FL_MULTILINE_OUTPUT"
-                o.labelsize = 20
+                o.labelsize = 16
                 o.align = fl.ALIGN_TOP + fl.ALIGN_LEFT
-                o.value = "This is the second page"
+                o.value = "License agreement\nSome text here\n"
+                o.value = o.value .. o.value .. o.value .. o.value .. o.value
+
+                do  -- Accept/reject radios
+                    local gx, gy = wx, wy+wh-80
+                    local g = assert(fl.Group{
+                      gx, gy, ww, 80,
+                      --box="FL_THIN_UP_FRAME"
+                    })
+
+                    local function license_radio_cb(b)
+                        if b == rb_license_accept then
+                            btn_wizard_next:activate()
+                        else
+                            btn_wizard_next:deactivate()
+                        end
+                    end
+
+                    local btn_reject = assert(fl.Round_Button{
+                      gx, gy+10, ww, 30, "&Do not accept the license agreement",
+                      --tooltip="Radio button",
+                      type="FL_RADIO_BUTTON", down_box="FL_ROUND_DOWN_BOX",
+                      value=true,
+                      callback = license_radio_cb,
+                    })
+
+                    rb_license_accept = assert(fl.Round_Button{
+                      gx, gy+40, ww, 30, "&Accept the license agreement",
+                      --tooltip="Radio button",
+                      type="FL_RADIO_BUTTON", down_box="FL_ROUND_DOWN_BOX",
+                      callback = license_radio_cb,
+                    })
+
+                    g:end_group()
+                end
 
                 g:end_group()
             end
@@ -45,22 +124,27 @@ local function start_gui()
         if not box then error('Could not create box') end
 
         -- Buttons
-        local button
 
         -- Cancel
-        button = assert(fl.Button{ 20, 435, 80, 30, "&Cancel" })
-        function button:callback() window:hide() end
+        local button = assert(fl.Button{ 20, 435, 80, 30, "&Cancel",
+            callback = function() window:hide() end
+        })
 
         -- Prev
-        button = assert(fl.Button{ 640-200, 435, 80, 30, "@< &Previous" })
-        function button:callback() wizard:prev() end
+        btn_wizard_prev = assert(fl.Button{ 640-200, 435, 80, 30, "@< &Previous",
+            callback = wiz_next_prev_cb
+        })
 
         -- Next
-        button = assert(fl.Button{ 640-100, 435, 80, 30, "&Next @>" })
-        function button:callback() wizard:next() end
+        btn_wizard_next = assert(fl.Button{ 640-100, 435, 80, 30, "&Next @>",
+            callback = wiz_next_prev_cb
+        })
+        btn_wizard_next:deactivate()     -- Until the license agreement is accepted
 
     end
     window:end_group()
+
+    wizard.value = screen_license   -- start at the license screen
 
     window:show()
     --original_print 'GUI running'
