@@ -1,34 +1,11 @@
 #include <windows.h>
+#include "resource.h"
 
-101 ICON  "installer-icon-tango.ico"
-//
-//1 VERSIONINFO
-// FILEVERSION 0,1,0,0
-// PRODUCTVERSION 0,1,0,0
-//BEGIN
-//    BLOCK "StringFileInfo"
-//    BEGIN
-//        BLOCK "040904e4"
-//
-//        BEGIN
-//            //VALUE "Comments", "www.luadist.org\0"
-//            VALUE "CompanyName", "devwrench.com\0"
-//            VALUE "FileDescription", "Lua-based installer\0"
-//            VALUE "FileVersion", "0.1\0"
-//            VALUE "InternalName", "swiss.exe\0"
-//            VALUE "LegalCopyright", "Copyright © 2018 Chris White.  Portions based on lauxlib, copyright © 1994-2017 Lua.org, PUC-Rio, and on srlua by Luiz Henrique de Figueiredo, public domain.\0"
-//            VALUE "OriginalFilename", "gui-a.exe\0"
-//            VALUE "ProductName", "swiss - scriptable win32 installer system\0"
-//            VALUE "ProductVersion", "0.1\0"
-//            //VALUE "PrivateBuild", "Built using LuaDist\0"
-//        END
-//    END
-//END
-//
-//// Thanks to http://www.transmissionzero.co.uk/computing/win32-apps-with-mingw/
-//// Thanks to http://mingw-users.1079350.n2.nabble.com/Bad-file-number-tp4621068p4621727.html
-//// and https://msdn.microsoft.com/en-us/library/windows/desktop/ms648009(v=vs.85).aspx
-//2 24 srlua.manifest
+IDI_ICON ICON  "installer-icon-tango.ico"
+
+// Thanks to http://www.transmissionzero.co.uk/computing/win32-apps-with-mingw/
+// Also note: http://mingw-users.1079350.n2.nabble.com/Bad-file-number-tp4621068p4621727.html
+// and https://msdn.microsoft.com/en-us/library/windows/desktop/ms648009(v=vs.85).aspx
 
 /* Application manifest */
 CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "srlua.manifest"

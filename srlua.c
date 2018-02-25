@@ -46,6 +46,8 @@
 #include "lauxlib.h"
 #endif
 
+#include "resource.h"
+
 // }}}1
 // Statically-linked libraries /////////////////////////////////////////// {{{1
 
@@ -457,6 +459,18 @@ static int p_load_required_modules(lua_State *L)
 
     load_embedded_module(L, "gui", LSRC_GUI);
     run_lua(L, "starting GUI", "(require 'gui').start()");
+
+    // Set the icon.  TODO make portable.
+    HINSTANCE hinst = GetModuleHandle(NULL);
+    HICON icon = LoadIcon(hinst, MAKEINTRESOURCE(IDI_ICON));
+    if(icon) do {
+        lua_getglobal(L, "Swiss_Window_Xid");
+        if(!lua_islightuserdata(L, -1)) break;
+        HWND hwnd = (HWND)lua_touserdata(L, -1);
+        if(!hwnd) break;
+        SetClassLong(hwnd, GCL_HICON, (LONG)icon);
+        SetClassLong(hwnd, GCL_HICONSM, (LONG)icon);
+    } while(0);
 
     // *** After this point, don't use fatal()
 

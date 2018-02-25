@@ -6,6 +6,7 @@
 local fl = require 'fltk4lua'
 local original_print = _G.print
 local M_window = nil
+Swiss_Window_Xid = nil  -- GLOBAL xid (HWND) of the window
 local M_browser = nil
 local M_wizard = nil
 
@@ -149,6 +150,8 @@ local function start_gui()
     M_window:show()
     --original_print 'GUI running'
     fl.check()
+
+    Swiss_Window_Xid = M_window.xid     -- give the C code access.  GLOBAL
 end
 
 local function sprintf(...)
