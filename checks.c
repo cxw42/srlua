@@ -120,7 +120,7 @@ Usage examples
 
 
 #include "checks.h"
-#include "lauxlib.h"
+/*#include "lauxlib.h"*/  /* pulled in by checks.h */
 #include <string.h>
 
 /** Generate and throw an error.

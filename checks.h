@@ -16,14 +16,27 @@
 #ifndef CHECKS_H
 #define CHECKS_H
 
+#ifdef __cplusplus
+#include <lua.hpp>
+#else
 #include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
+#endif
+
 
 #ifndef CHECKS_API
 #define CHECKS_API extern
 #endif
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 CHECKS_API int luaopen_checks( lua_State *L);
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

@@ -6,8 +6,12 @@
 * This code is hereby placed in the public domain.
 */
 
+//#define GLUESIG		"%%glue:L"
+//#define GLUELEN		(sizeof(GLUESIG)-1)
+//#define GLUETYP		(sizeof(GLUESIG)-2)
+
 #define GLUESIG		"%%glue:L"
-#define GLUELEN		(sizeof(GLUESIG)-1)
-#define GLUETYP		(sizeof(GLUESIG)-2)
+#define GLUELEN		(sizeof(GLUESIG))
+#define GLUETYP		(sizeof(GLUESIG)-1)
 
 typedef struct { char sig[GLUELEN]; long size1, size2; } Glue;

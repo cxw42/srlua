@@ -37,17 +37,31 @@
 #include <string.h>
 
 #include "glue.h"
+
+#ifdef __cplusplus
+#include <lua.hpp>
+#else
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
+#endif
 
 // }}}1
 // Statically-linked libraries /////////////////////////////////////////// {{{1
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 LUALIB_API int luaopen_brimworks_zip(lua_State* L);
 LUALIB_API int luaopen_lfs(lua_State* L);
 LUALIB_API int luaopen_checks( lua_State *L);
 #ifdef GUI
 LUALIB_API int luaopen_fltk4lua( lua_State* L );
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 // }}}1
@@ -458,7 +472,7 @@ static int p_load_required_modules(lua_State *L)
 static int pmain(lua_State *L)
 {
     int argc=lua_tointeger(L,1);
-    char** argv=lua_touserdata(L,2);
+    char** argv=(char**)lua_touserdata(L,2);
     int i;
 
     // Stuff the arguments in global table `arg`

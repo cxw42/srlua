@@ -27,8 +27,8 @@ ifeq (,$(filter clean clean-%,$(MAKECMDGOALS)))
 	mkdir -p gen
 endif
 
-CC= gcc
-CFLAGS= $(INCS) $(WARN) $G -std=c11 -U__STRICT_ANSI__ -Wno-overlength-strings
+CC= g++
+CFLAGS= $(INCS) $(WARN) $G -std=gnu++11 -U__STRICT_ANSI__ -Wno-overlength-strings
 	# -U__STRICT_ANSI__ is to expose the definition of _fileno().
 	# Thanks to https://stackoverflow.com/a/21035923/2877364 by
 	# https://stackoverflow.com/users/1250772/kaz
@@ -37,19 +37,20 @@ INCS= -I$(LUAINC)
 GUI_INCS = $(INCS) \
 	   -I/mingw/include -I/mingw/include/FL/images -DWIN32 -DUSE_OPENGL32 \
 	   -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE
-GUI_CFLAGS= $(GUI_INCS) $(WARN) $G -std=c11 -U__STRICT_ANSI__ -Wno-overlength-strings
+GUI_CFLAGS= $(GUI_INCS) $(WARN) $G -std=gnu++11 -U__STRICT_ANSI__ -Wno-overlength-strings
 
 OBJS= srlua.o lfs.o checks.o
 GUI_OBJS= gui-srlua.o wmain.o lfs.o gui-srlua-res.o checks.o
 
-LIBS= luazip.a -L$(LUALIB) -lzip -lz -llua -lm -lrpcrt4 -lole32 #-ldl
+LIBS= luazip.a -L$(LUALIB) -lzip -lz -llua -lm -lrpcrt4 -lole32 -static-libgcc -static-libstdc++ #-ldl
 
 # Statically link fltk and fltk4lua
 GUI_LIBS= luazip.a libfltk4lua.a \
 	/mingw/lib/libfltk_images.a /mingw/lib/libfltk_jpeg.a \
 	/mingw/lib/libfltk_png.a /mingw/lib/libfltk_z.a /mingw/lib/libfltk.a \
-	-L$(LUALIB) -lzip -lz -llua -lm -lstdc++ \
-	-ladvapi32 -lcomctl32 -lgdi32 -lrpcrt4 -lole32 -luuid -lshell32 -luser32
+	-L$(LUALIB) -lzip -lz -llua -lm \
+	-ladvapi32 -lcomctl32 -lgdi32 -lrpcrt4 -lole32 -luuid -lshell32 -luser32 \
+	-static-libgcc -static-libstdc++
 
 EXPORT= -Wl,--export-all-symbols
 # for Mac OS X comment the previous line above or do 'make EXPORT='

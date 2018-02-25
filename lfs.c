@@ -63,9 +63,13 @@
   #define LFS_MAXPATHLEN MAXPATHLEN
 #endif
 
-#include <lua.h>
-#include <lauxlib.h>
-#include <lualib.h>
+#ifdef __cplusplus
+#include <lua.hpp>
+#else
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
+#endif
 
 #include "lfs.h"
 
@@ -186,7 +190,7 @@ static int get_dir (lua_State *L) {
     size_t size = LFS_MAXPATHLEN; /* initial buffer size */
     int result;
     while (1) {
-        char* path2 = realloc(path, size);
+        char* path2 = (char*)realloc(path, size);
         if (!path2) /* failed to allocate */ {
             result = pusherror(L, "get_dir realloc() failed");
             break;
@@ -856,6 +860,7 @@ static int file_info (lua_State *L) {
 */
 static int push_link_target(lua_State *L) {
 #ifdef _WIN32
+        (void)L;
         errno = ENOSYS;
         return 0;
 #else
