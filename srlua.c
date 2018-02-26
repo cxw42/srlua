@@ -212,6 +212,8 @@ static char* getprog(char *progdir)
 // }}}1
 // Package `swiss` /////////////////////////////////////////////////////// {{{1
 
+#include "gen/swiss-partial.h"
+
 /// Absolute path where we were originally run, or an empty string if
 /// we couldn't determine the original cwd.
 static char original_cwd[_PATH_MAX+1];
@@ -285,37 +287,65 @@ int swiss_make_glue_record(lua_State *L)
 LUALIB_API int luaopen_swiss(lua_State* L)
 {
     lua_newtable(L);
+    int idx_dest = lua_gettop(L);
+
+    // Add the members defined in C
 
     lua_pushstring(L, original_cwd);
-    lua_setfield(L, -2, "original_cwd");
+    lua_setfield(L, idx_dest, "original_cwd");
 
     lua_pushstring(L, payload_fullname);
-    lua_setfield(L, -2, "payload_fullname");
+    lua_setfield(L, idx_dest, "payload_fullname");
 
     lua_pushstring(L, payload_dir);
-    lua_setfield(L, -2, "payload_dir");
+    lua_setfield(L, idx_dest, "payload_dir");
 
     lua_pushstring(L, exe_fullpath);
-    lua_setfield(L, -2, "exe_fullname");
+    lua_setfield(L, idx_dest, "exe_fullname");
 
     lua_pushstring(L, initial_argv0);
-    lua_setfield(L, -2, "invoked_as");
+    lua_setfield(L, idx_dest, "invoked_as");
 
     lua_pushcfunction(L, swiss_make_temp_dir);
-    lua_setfield(L, -2, "make_temp_dir");
+    lua_setfield(L, idx_dest, "make_temp_dir");
 
     lua_pushcfunction(L, swiss_make_glue_record);
-    lua_setfield(L, -2, "make_glue_record");
+    lua_setfield(L, idx_dest, "make_glue_record");
 
 #ifdef GUI
     lua_pushboolean(L, TRUE);
 #else
     lua_pushboolean(L, FALSE);
 #endif
-    lua_setfield(L, -2, "gui");
+    lua_setfield(L, idx_dest, "gui");
 
     lua_pushinteger(L, exe_core_size);
-    lua_setfield(L, -2, "exe_core_size");
+    lua_setfield(L, idx_dest, "exe_core_size");
+
+    // Add the members defined in Lua
+
+    run_lua(L, "intialization of package `swiss`", LSRC_SWISS_PARTIAL);
+    if(!lua_istable(L, -1)) {
+        return luaL_error(L, "swiss-partial.lua didn't return a table");
+    }
+
+    // If we get here, we have a table.  Copy it into the one at
+    // `idx_dest`.
+
+    int idx_src = lua_gettop(L);
+
+    // Loop over table --- from Lua ref manual 5.3
+    lua_pushnil(L);  // first key
+    while (lua_next(L, idx_src) != 0) {
+        // uses 'key' (at index -2) and 'value' (at index -1)   K V ]
+        lua_pushvalue(L, -2);       // copy the key             K V K ]
+        lua_insert(L, -2);          // swap key and value       K K V ]
+        lua_settable(L, idx_dest);  // assign to dest, popping key and value
+                                    // keep 'key' for next iteration   K ]
+    }
+
+    lua_settop(L, idx_dest);    // drop the swiss-partial table; leave the
+                                // swiss table at the top of the stack
 
     return 1;
 } //luaopen_swiss

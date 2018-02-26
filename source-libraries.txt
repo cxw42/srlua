@@ -52,9 +52,16 @@ gen/atexit2.h          atexit2           lua/atexit2.lua
 
 # GUI framework - runs first.  Requires atexit2.  MANUAL means it is not
 # automatically loaded by register_lsources().
-gen/gui.h              gui               lua/gui.lua                           MANUAL
+gen/gui.h              gui               lua/gui.lua                    MANUAL
 
+# General utilities
 gen/util.h             util              lua/util.lua
+
+# Parts of package `swiss` that are defined in Lua rather than in C
+gen/swiss-partial.h    swiss-partial     lua/swiss-partial.lua          MANUAL
 
 # main routine, rather than glued-on
 gen/main.h             MAIN              lua/main.lua
+
+# Not a shell, but the shell modeline gives me comment highlighting
+# vi: set ts=4 sts=4 sw=4 et ai ft=sh: #
