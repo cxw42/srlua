@@ -4,6 +4,7 @@
 -- atexit2, swiss, print_r, lfs are already in the global space
 local zip = require('brimworks.zip')
 local util = require('util')
+local winreg = require 'winreg'
 
 --error('test error at the top')   -- for debugging
 

@@ -42,14 +42,17 @@ GUI_CFLAGS= $(GUI_INCS) $(WARN) $G -std=gnu++11 -U__STRICT_ANSI__ -Wno-overlengt
 OBJS= srlua.o lfs.o checks.o
 GUI_OBJS= gui-srlua.o wmain.o lfs.o gui-srlua-res.o checks.o
 
-LIBS= luazip.a -L$(LUALIB) -lzip -lz -llua -lm -lrpcrt4 -lole32 -static-libgcc -static-libstdc++ #-ldl
+LIBS= luazip.a libwinreg.a -L$(LUALIB) -lzip -lz -llua -lm \
+	  -ladvapi32 -lrpcrt4 -lole32 -lkernel32 -luser32 \
+	  -static-libgcc -static-libstdc++ #-ldl
 
 # Statically link fltk and fltk4lua
-GUI_LIBS= luazip.a libfltk4lua.a \
+GUI_LIBS= luazip.a libfltk4lua.a libwinreg.a \
 	/mingw/lib/libfltk_images.a /mingw/lib/libfltk_jpeg.a \
 	/mingw/lib/libfltk_png.a /mingw/lib/libfltk_z.a /mingw/lib/libfltk.a \
 	-L$(LUALIB) -lzip -lz -llua -lm \
-	-ladvapi32 -lcomctl32 -lgdi32 -lrpcrt4 -lole32 -luuid -lshell32 -luser32 \
+	-ladvapi32 -lcomctl32 -lgdi32 -lrpcrt4 -lole32 -luuid -lshell32 \
+	-lkernel32 -luser32 \
 	-static-libgcc -static-libstdc++
 
 EXPORT= -Wl,--export-all-symbols

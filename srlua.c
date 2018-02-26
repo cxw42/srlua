@@ -57,9 +57,10 @@ extern "C" {
 
 LUALIB_API int luaopen_brimworks_zip(lua_State* L);
 LUALIB_API int luaopen_lfs(lua_State* L);
-LUALIB_API int luaopen_checks( lua_State *L);
+LUALIB_API int luaopen_checks(lua_State *L);
+LUALIB_API int luaopen_winreg(lua_State *L);
 #ifdef GUI
-LUALIB_API int luaopen_fltk4lua( lua_State* L );
+LUALIB_API int luaopen_fltk4lua(lua_State* L);
 #endif
 
 #ifdef __cplusplus
@@ -445,6 +446,10 @@ static int p_load_required_modules(lua_State *L)
 
     luaL_requiref(L, "lfs", luaopen_lfs, 1); lua_pop(L,1);
     luaL_requiref(L, "checks", luaopen_checks, 1); lua_pop(L,1);
+    luaL_requiref(L, "winreg", luaopen_winreg, 1); lua_pop(L,1);
+
+    //luaopen_winreg(L);  // winreg calls luaL_register, which sets
+                        // package.loaded.winreg.
 
 #ifdef GUI
     luaL_requiref(L, "fltk4lua", luaopen_fltk4lua, 0); lua_pop(L,1);

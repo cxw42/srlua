@@ -59,6 +59,8 @@ This makes static libraries in /mingw/lib, not dynamic
 
 ## fltk4lua
 
+Uses cxw's fork with `Window.xid`
+
 ### Build
 
     luarocks unpack fltk4lua
@@ -76,7 +78,32 @@ the `luarocks make` process)
 
 ## winreg
 
-    luarocks install winreg
+### Build (stable)
+
+Similar to the fltk4lua process above.
+
+    luarocks unpack winreg
+    cd winreg-1.0.0-1/lua-winreg-1.0.0
+    luarocks make winreg-1.0.0-1.rockspec
+
+This will install winreg as a rock.
+
+    ar r libwinreg.a src/l52util.o src/lua_int64.o src/lua_mtutil.o src/lua_tstring.o src/luawin_dllerror.o src/win_privileges.o src/win_registry.o src/win_trace.o src/winreg.o
+
+Or whatever `.o` files are linked by `luarocks make`
+
+    cp libwinreg.a <srlua dir>
+
+### Build (latest --- with better 32/64 support)
+
+    git clone https://github.com/moteus/lua-winreg.git
+    cd lua-winreg
+    luarocks make rockspecs/winreg-scm-0.rockspec
+    ar r libwinreg.a src/l52util.o src/lua_int64.o src/lua_mtutil.o src/lua_tstring.o src/luawin_dllerror.o src/win_privileges.o src/win_registry.o src/win_trace.o src/winreg.o
+
+(or whatever list of `.o` files was used in the `luarocks make` link line)
+
+    cp libwinreg.a <srlua dir>
 
 ## `srlua`
 
