@@ -1,23 +1,71 @@
 ## Setting up cmake/mingw32-make environment
 
- - Run `cmd`
- - `path %path%;c:\MinGW\bin;"c:\Program Files (x86)\CMake\bin"`
+In `cmd`:
+
+    path %path%;c:\MinGW\bin;"c:\Program Files (x86)\CMake\bin"
+
+Leave this shell open while building the rest.  The remaining steps are in
+an MSYS shell, unless `cmd` is specified.
 
 ## Static build of zlib
 
-Do one!  Then `-lz` will get the static version.
+This is so `-lz` will get the static version.  Grab zlib from [TODO]().
 
-## Static build of libzip
+### Setup
+
+    tar xvJf zlib-1.2.11.tar.xz
+    cd zlib-1.2.11
+
+Edit `win32/Makefile.gcc` to add, before the `STATICLIB` line,
+
+    INCLUDE_PATH=/mingw/include
+    BINARY_PATH=/mingw/bin
+    LIBRARY_PATH=/mingw/lib
+
+Also change the `prefix ?=` assignment to
+
+    prefix ?= /mingw
+
+### Build
+
+In `zlib-1.2.11`, do
+
+    make -fwin32/Makefile.gcc install
+
+If you have a dynamically-linked zlib installed, rename it so the static
+version will win:
+
+    cd /mingw/lib
+    mv libz.dll.a libzdynamic.dll.a
+
+## libzip
+
+Get libzip from [TODO]().  Libzip builds with CMake, so be sure you have
+the **Windows** version of CMake installed and in your PATH.
+
+### Build
 
 In `cmd`:
 
- - `cd libzip-1.4.0\build-static`
- - `C:\MinGW\msys\1.0\home\ChrisW\src\libzip-1.4.0\build-static>cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=./installed -DBUILD_SHARED_LIBS=off ..`
- - `mingw32-make VERBOSE=1 install`
+    cd libzip-1.4.0
+    mkdir build-static
+    cd build-static
+    cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=./installed -DBUILD_SHARED_LIBS=off ..
+    mingw32-make VERBOSE=1 install
 
-That puts the static libzip.a in /mingw/lib.
+TODO figure out why we're getting an error from `/mingw/include/stdio.h`:
 
-## Static build of lua-zip
+    extern int __attribute__((__cdecl__)) __attribute__((__nothrow__)) __Wformat__snprintf __mingw__snprintf(char*, size_t, const char*, ...);
+
+is producing
+
+    c:\mingw\include\stdio.h:345:12: error: expected '=', ',', ';', 'asm' or '__attribute__' before '__mingw__snprintf'
+     extern int __mingw_stdio_redirect__(snprintf)(char*, size_t, const char*, ...);
+                ^
+
+That puts the static `libzip.a` in `/mingw/lib`.
+
+## lua-zip
 
 ### Edit `CMakeLists.txt`
 
@@ -26,7 +74,10 @@ Add just just after the `CMAKE_MINIMUM_REQUIRED` line:
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DLUA_COMPAT_APIINTCASTS")
     FIND_LIBRARY(LIBZ_LIBRARY NAMES z)
 
-Thanks to https://github.com/diegonehab/luasocket/issues/124#issuecomment-73495211 by https://github.com/siffiejoe and https://stackoverflow.com/a/10087100/2877364 by https://stackoverflow.com/users/2556117/fraser
+Thanks to [this comment](https://github.com/diegonehab/luasocket/issues/124#issuecomment-73495211) by
+[siffiejoe](https://github.com/siffiejoe) and
+[this answer](https://stackoverflow.com/a/10087100/2877364) by
+[fraser](https://stackoverflow.com/users/2556117/fraser).
 
 Edit the `TARGET_LINK_LIBRARIES` entry in `CMakeLists.txt` as follows:
 
@@ -38,9 +89,11 @@ Edit the `TARGET_LINK_LIBRARIES` entry in `CMakeLists.txt` as follows:
 
 In `cmd`:
 
- - `cd lua-zip\build-static`
- - `C:\MinGW\msys\1.0\home\ChrisW\src\libzip-1.4.0\build-static>cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Debug -DINSTALL_CMOD=./installed ..`
- - `mingw32-make VERBOSE=1 install`
+    cd lua-zip
+    mkdir build-static
+    cd build-static
+    C:\MinGW\msys\1.0\home\ChrisW\src\libzip-1.4.0\build-static>cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Debug -DINSTALL_CMOD=./installed ..
+    mingw32-make VERBOSE=1 install
 
 That gives you a DLL in `./installed`, but you don't care about that.  Instead,
 grab `./CMakeFiles/cmod_zip.dir/objects.a`.  Copy it to `srlua/luazip.a`.
