@@ -35,7 +35,7 @@ while read -r destfn modulename sourcefn conditions ; do
         echo "#include \"$includename\"" >> "$3"
     fi
 
-    varname=$(echo "LSRC_$modulename" | tr '.' '_' | tr '[a-z]' '[A-Z]')
+    varname=$(echo "LSRC_$modulename" | tr '[a-z]' '[A-Z]' | sed 's/[^A-Z]/_/g' )
     varnames+=("$varname")
     modulenames+=("$modulename")
 
@@ -51,7 +51,8 @@ while read -r destfn modulename sourcefn conditions ; do
         echo "@lua -e 'assert(loadfile(\"$sourcefn\"))'" >> "$1"
     fi
 
-    # gawk script is: give it a variable name;
+    # gawk script is: give it a variable name, and put the filename in the
+    #                 first line of the chunk for easier debugging;
     #   omit shebang line;
     #   strip leading and trailing whitespace;
     #   omit lines with nothing but a `--`;
@@ -62,7 +63,7 @@ while read -r destfn modulename sourcefn conditions ; do
     #   At the end, finish off the string constant.
 
     echo -ne '\t' >> "$1"
-    echo '@gawk -- '"'"'BEGIN { print "static const char *'"$varname"' =" } \
+    echo '@gawk -- '"'"'BEGIN { print "static const char *'"$varname"' =\"--'"$destfn"'\\n\"" } \
         (NR==1) && ($$0 ~ /^#/) { next } \
         { sub(/^[[:space:]]+/,""); sub(/[[:space:]]+$$/,""); } \
         $$0=="--" { next } \

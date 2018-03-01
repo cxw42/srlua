@@ -81,4 +81,6 @@ end
 --print('Press enter to continue')
 --io.read()
 
+swiss.register_program{answer = 42}
+
 -- vi: set ts=4 sts=4 sw=4 et ai fo-=ro ff=unix: --
