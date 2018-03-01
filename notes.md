@@ -1,3 +1,29 @@
+# Building swiss
+
+`srlua` and `swiss` both refer to the directory where the srlua sources are.
+
+## Lua
+
+Download Lua 5.3 and extract it into a directory.
+
+### Editing
+
+Edit the appropriate lines in `lua53/Makefile` to be as follows:
+
+    PLAT=mingw
+    INSTALL_TOP=/mingw
+
+### Building
+
+    cd lua53
+    make install
+
+## Luarocks
+
+Grab the Unix version, the .tar.gz.
+
+TODO resume here
+
 ## Setting up cmake/mingw32-make environment
 
 In `cmd`:
@@ -6,6 +32,8 @@ In `cmd`:
 
 Leave this shell open while building the rest.  The remaining steps are in
 an MSYS shell, unless `cmd` is specified.
+
+## Lua
 
 ## Static build of zlib
 
@@ -43,6 +71,28 @@ version will win:
 Get libzip from [TODO]().  Libzip builds with CMake, so be sure you have
 the **Windows** version of CMake installed and in your PATH.
 
+### Editing <stdio.h> (!)
+
+As of 2018/03/01, GCC barfs on something in the mingw definition of `sprintf`.
+There is a fix, thanks to [Cooper](https://forums.wxwidgets.org/memberlist.php?mode=viewprofile&u=34639&sid=ea9ee0d2e0089c8347838f930cbfb782) in
+[this post](https://forums.wxwidgets.org/viewtopic.php?f=19&t=43756#p179001).
+
+Edit `/mingw/include/stdio.h` and comment out line 345, which is
+
+    extern int __mingw_stdio_redirect__(snprintf)(char*, size_t, const char*, ...);
+
+#### Error message
+
+If you don't do this, the preprocessed line
+
+    extern int __attribute__((__cdecl__)) __attribute__((__nothrow__)) __Wformat__snprintf __mingw__snprintf(char*, size_t, const char*, ...);
+
+triggers the error
+
+    c:\mingw\include\stdio.h:345:12: error: expected '=', ',', ';', 'asm' or '__attribute__' before '__mingw__snprintf'
+     extern int __mingw_stdio_redirect__(snprintf)(char*, size_t, const char*, ...);
+                ^
+
 ### Build
 
 In `cmd`:
@@ -50,22 +100,17 @@ In `cmd`:
     cd libzip-1.4.0
     mkdir build-static
     cd build-static
-    cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=./installed -DBUILD_SHARED_LIBS=off ..
-    mingw32-make VERBOSE=1 install
-
-TODO figure out why we're getting an error from `/mingw/include/stdio.h`:
-
-    extern int __attribute__((__cdecl__)) __attribute__((__nothrow__)) __Wformat__snprintf __mingw__snprintf(char*, size_t, const char*, ...);
-
-is producing
-
-    c:\mingw\include\stdio.h:345:12: error: expected '=', ',', ';', 'asm' or '__attribute__' before '__mingw__snprintf'
-     extern int __mingw_stdio_redirect__(snprintf)(char*, size_t, const char*, ...);
-                ^
+    cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=/mingw -DBUILD_SHARED_LIBS=off -DCMAKE_DISABLE_FIND_PACKAGE_BZip2=TRUE ..
+    mingw32-make -j4 VERBOSE=1 install
 
 That puts the static `libzip.a` in `/mingw/lib`.
 
+If you have libbz2 and want bzip2 support, leave off the `...DISABLE..BZip2`
+argument to `cmake`.
+
 ## lua-zip
+
+Grab `brimworks.zip`.
 
 ### Edit `CMakeLists.txt`
 
@@ -92,11 +137,12 @@ In `cmd`:
     cd lua-zip
     mkdir build-static
     cd build-static
-    C:\MinGW\msys\1.0\home\ChrisW\src\libzip-1.4.0\build-static>cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Debug -DINSTALL_CMOD=./installed ..
-    mingw32-make VERBOSE=1 install
+    cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Debug -DINSTALL_CMOD=./installed ..
+    mingw32-make -j4 VERBOSE=1 install
+    copy CMakeFiles\cmod_zip.dir\objects.a <wherever srlua is>\srlua\luazip.a
 
-That gives you a DLL in `./installed`, but you don't care about that.  Instead,
-grab `./CMakeFiles/cmod_zip.dir/objects.a`.  Copy it to `srlua/luazip.a`.
+That also gives you a DLL in `./installed`, but you don't care about that.
+The static `luazip.a` you copied into srlua is what you want.
 
 ## fltk
 
