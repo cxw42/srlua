@@ -109,7 +109,7 @@ GEN_HDR := gen/generated_incs.h
 GENERATED_INCS=
 
 clean:
-	rm -f $(OBJS) $T $S core core.* a.out *.o $(GLUE) \
+	rm -f $(OBJS) $T $S gui-$T gui-$S core core.* a.out *.o $(GLUE) \
 		$(GEN_INC_FILE) $(GEN_HDR) $(GENERATED_INCS)
 	-rmdir gen
 

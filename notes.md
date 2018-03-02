@@ -1,6 +1,8 @@
 # Building swiss
 
-`srlua` and `swiss` both refer to the directory where the srlua sources are.
+`srlua` and `swiss` both refer to the directory where the swiss sources are.
+This process is disturbingly tedious, but does result in a self-contained,
+statically-linked executable that does GUIs and runs Lua.
 
 ## Lua
 
@@ -17,12 +19,41 @@ Edit the appropriate lines in `lua53/Makefile` to be as follows:
 
     cd lua53
     make install
+    cp src/lua53.dll /mingw/bin
+
+The last line because, for some reason, the Makefile doesn't install the DLL.
+
+    cd /mingw/lib
+    cp liblua.a lua5.3.lib
+
+Because fltk4lua, below, will look for `lua5.3.lib`.
 
 ## Luarocks
 
-Grab the Unix version, the .tar.gz.
+Grab BOTH the Unix version, the .tar.gz, and the Win32 version, the .zip.
 
-TODO resume here
+### Setup
+
+Grab the tools from the Win32 version:
+
+    unzip luarocks-2.4.3-win32.zip
+    cd luarocks-2.4.3-win32/win32
+    cp -R tools /mingw
+
+### Build
+
+    tar xvzf luarocks-2.4.3.tar.gz
+    cd luarocks-2.4.3
+    ./configure --prefix=/mingw --with-lua=/mingw --lua-version=5.3
+    make build
+    make install
+
+### Installing required packages
+
+When connected to the network:
+
+    luarocks install luarocks-fetch-gitrec
+    luarocks install luarocks-build-cpp
 
 ## Setting up cmake/mingw32-make environment
 
@@ -158,7 +189,37 @@ This makes static libraries in /mingw/lib, not dynamic
 
 ## fltk4lua
 
-Uses cxw's fork with `Window.xid`
+Uses cxw's fork with `Window.xid`.
+
+### luarocks mods
+
+Unfortunately, `luarocks.build.cpp` [hasn't been updated for Lua 5.3](https://github.com/lua4web/luarocks-build-cpp/issues/2).
+Therefore, edit `/mingw/share/lua/5.3/luarocks/build/cpp.lua` as follows:
+
+ - Comment out the `module(...)` line at the top
+ - Function `luarocks.build.build_rockspec` calls
+   `pcall(require, "luarocks.build." .. build_spec.type)`, so we are going to
+   change `luarocks.build.cpp` to a new-style module.  That involves two
+   changes:
+   - Add just after the `module` line:
+
+         local M = {}
+
+   - Add at the very end of the file:
+
+         return M
+
+ - Now change the definition of the exported function to be a member of `M`.
+   Change:
+
+        function run(rockspec)
+
+   to:
+
+        M.run = function(rockspec)
+
+ - Replace all instances of `unpack` with `table.unpack` (there were 9,
+   when I did this)
 
 ### Build
 
@@ -206,9 +267,11 @@ Or whatever `.o` files are linked by `luarocks make`
 
 ## `srlua`
 
+### Build
+
     make gui-test
 
-## Notes
+# Notes (ignore if all you want is to build swiss)
 
 I wanted to try IUP, since I think it may use native widgets.  However, I had
 problems with freetype, which CD depends on, which IUP depends on.
