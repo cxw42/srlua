@@ -6,11 +6,25 @@
 
 --- Register a program in the "Add/Remove Programs" list
 --- TODO implement
-local function register_program(opts)
-    local print_r = require 'print_r'
+local print_r = require 'print_r'
+local winreg = require 'winreg'
+local raii = require 'raii'
+local scoped, pcall = raii.scoped, raii.pcall
+
+local register_program = raii(function(opts)
     print("Hello from not-yet-implemented swiss.register_program!")
     print_r(opts)
-end --register_program
+
+    -- test from winreg.chm, with raii added
+    local hkey = scoped(assert(winreg.openkey[[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion]]))
+
+    local skey = scoped(assert(hkey:openkey([[Explorer\Shell Folders]])))
+    for name in skey:enumvalue() do
+        print("\nname: " .. name
+           .. "\npath: " .. skey:getvalue(name))
+    end
+
+end) --register_program
 
 return {
     register_program = register_program
